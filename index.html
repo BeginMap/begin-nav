@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Begin Map</title>
+  <meta name="referrer" content="no-referrer">
+  <meta name="description" content="Begin High School, Eilat: find any room and get walking directions. מצאו כל חדר בבית הספר בגין באילת. Найдите любой кабинет в школе Begin.">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/png" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="preload" as="image" href="public/maps/plan.jpg" fetchpriority="high">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:ital,wght@0,500..900;1,800..900&display=swap">
+  <script>try{var l=localStorage.getItem("layout")||(innerWidth>=900?"desktop":"phone");document.documentElement.dataset.layout=l}catch(e){document.documentElement.dataset.layout=innerWidth>=900?"desktop":"phone"}</script>
+  <script>try{if(!/[?&]nointro/.test(location.search)&&!(window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches)){document.documentElement.classList.add("intro-pending");addEventListener("load",function(){if(!window.__introBoot)document.documentElement.classList.remove("intro-pending")})}}catch(e){}</script>
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+  <div class="intro" id="intro" role="presentation" hidden>
+    <canvas class="intro__cv" id="introCv" aria-hidden="true"></canvas>
+    <ul class="intro__langs">
+      <li lang="he" dir="rtl" data-lang="he" role="button" tabindex="0"><span class="t">מצא כיתה</span><span class="l">עברית</span></li>
+      <li lang="ru" data-lang="ru" role="button" tabindex="0"><span class="t">Найти класс</span><span class="l">Русский</span></li>
+      <li lang="en" data-lang="en" role="button" tabindex="0"><span class="t">Find a room</span><span class="l">English</span></li>
+    </ul>
+    <p class="intro__credit" dir="ltr" lang="en"><span>@david.ik.</span><span>@liamna01_</span></p>
+    <p class="intro__skip" id="introSkip">הקש פעמיים · Нажмите дважды · Double-tap</p>
+  </div>
+  <a class="skip" href="#q" id="skip">Search</a>
+  <div class="app" id="app" data-sheet="peek">
+    <aside class="sheet" id="sheet" data-state="peek" aria-labelledby="appTitle">
+      <button class="sheet__grab" id="grab" type="button" aria-expanded="false" aria-controls="sheetBody">
+        <span class="sheet__bar" aria-hidden="true"></span>
+      </button>
+      <header class="sheet__head">
+        <h1 class="sheet__title" id="appTitle"></h1>
+        <div class="row">
+          <button class="btn btn--ghost btn--small btn--device" id="btnDevice" type="button"></button>
+          <button class="btn btn--ghost btn--small" id="btnLang" type="button"></button>
+        </div>
+      </header>
+      <div class="sheet__body" id="sheetBody">
+        <p class="msg" id="offlineBanner" role="status" hidden></p>
+        <section id="viewSearch" aria-live="polite">
+          <div class="searchbox">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+            <input id="q" type="search" enterkeyhint="search" autocomplete="off" autocapitalize="off" spellcheck="false">
+          </div>
+          <div class="chips" id="chips">
+            <button class="chip" id="chipToilet" type="button"></button>
+            <button class="chip" id="chipOffice" type="button"></button>
+            <button class="chip" id="chipShelter" type="button"></button>
+          </div>
+          <ul class="rooms" id="roomList"></ul>
+          <div class="empty msg" id="emptyState" hidden>
+            <strong id="emptyTitle"></strong>
+            <p id="emptyHint"></p>
+          </div>
+        </section>
+        <section id="viewRoute" hidden>
+          <div class="route__top">
+            <button class="route__back" id="btnBack" type="button"></button>
+            <div class="route__main">
+              <h2 class="route__dest" id="routeDest" tabindex="-1"></h2>
+              <p class="route__summary" id="routeSummary" role="status"></p>
+            </div>
+          </div>
+          <p class="route__hint" id="routeHint" hidden></p>
+          <button class="route__from" id="btnChangeStart" type="button"></button>
+        </section>
+      </div>
+    </aside>
+    <main class="mapwrap" id="mapwrap">
+      <div id="map" role="application"></div>
+      <div class="v3d" id="view3d" hidden></div>
+      <div class="mapui">
+        <div class="locchip" id="locChip" hidden>
+          <span id="locText"></span>
+          <button type="button" class="locchip__x" id="locClear"></button>
+        </div>
+        <div class="pickbanner msg" id="pickBanner" hidden>
+          <span id="pickText"></span>
+          <button class="btn btn--small btn--ghost" id="pickCancel" type="button"></button>
+        </div>
+        <div class="quakebanner msg" id="quakeBanner" role="status" hidden>
+          <span id="quakeText"></span>
+          <button class="btn btn--small" id="quakeClose" type="button"></button>
+        </div>
+        <button class="pill pill--mark" id="btnMark" type="button"></button>
+        <button class="pill pill--shelter" id="btnShelter" type="button" aria-pressed="false"></button>
+        <div class="quakebanner shelterbanner msg" id="shelterBanner" role="status" hidden>
+          <span id="shelterText"></span>
+          <button class="btn btn--small" id="shelterClose" type="button"></button>
+        </div>
+        <p class="v3dhint msg" id="v3dHint" role="status" hidden></p>
+        <div class="wxchip" id="wxChip" hidden></div>
+        <button class="pill pill--walk" id="btnWalk" type="button" hidden></button>
+        <button class="pill pill--walk pill--spot" id="btnSpot" type="button" hidden></button>
+        <div class="fabs" id="fabs">
+          <button class="fab fab--3d" id="btn3d" type="button" aria-pressed="false"></button>
+          <button class="pill pill--mark pill--mark2" id="btnMark2" type="button"></button>
+          <button class="fab" id="btnFit" type="button"></button>
+          <button class="fab fab--quake" id="btnQuake" type="button" aria-pressed="false"></button>
+        </div>
+      </div>
+    </main>
+  </div>
+  <dialog id="dlgHere" aria-labelledby="hereTitle">
+    <form method="dialog" class="dlg">
+      <h2 id="hereTitle"></h2>
+      <div id="hereMain">
+        <button class="choice" id="chRoom" type="button"></button>
+        <button class="choice" id="chTap" type="button"></button>
+      </div>
+      <div id="herePick" hidden>
+        <div class="searchbox">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          <input id="hereQ" type="search" autocomplete="off" autocapitalize="off" spellcheck="false">
+        </div>
+        <ul class="rooms rooms--dialog" id="hereList"></ul>
+      </div>
+      <div class="dlg__foot"><button class="btn btn--ghost" id="hereCancel" value="cancel"></button></div>
+    </form>
+  </dialog>
+  <dialog id="dlgPhoto" class="photo" aria-labelledby="photoCap">
+    <form method="dialog" class="photo__form">
+      <img id="photoImg" alt="" decoding="async">
+      <p class="photo__cap" id="photoCap"></p>
+      <div class="photo__nav" id="photoNav" hidden>
+        <button type="button" class="photo__arrow" id="photoPrev"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+        <span class="photo__count" id="photoCount"></span>
+        <button type="button" class="photo__arrow" id="photoNext"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button>
+      </div>
+      <div class="photo__thumbs" id="photoThumbs" hidden></div>
+      <button class="btn photo__close" id="photoClose" value="close"></button>
+    </form>
+  </dialog>
+  <noscript><p style="padding:24px;font:18px system-ui">JavaScript נדרש. / Требуется JavaScript. / JavaScript is required.</p></noscript>
+  <script src="src/intro.js"></script>
+  <script type="module" src="src/app.js"></script>
+</body>
+</html>
