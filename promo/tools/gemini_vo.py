@@ -20,7 +20,7 @@ import numpy as np
 
 HERE = Path(__file__).resolve().parent
 SR = 48000
-MODELS = ["gemini-3.8-flash-tts", "gemini-2.5-pro-preview-tts", "gemini-2.5-flash-preview-tts"]
+MODELS = os.environ.get("TTS_MODELS", "gemini-3.1-flash-tts-preview,gemini-3.8-flash-lite-tts,gemini-3.8-flash-tts").split(",")
 
 STYLE = {
     "he": "Read this Hebrew voice-over like a smart, calm and confident narrator of a premium tech product film. "
@@ -32,10 +32,10 @@ STYLE = {
 }
 
 
-def tts(text, lang, voice):
+def tts(text, lang, voice, extra=""):
     key = os.environ.get("GEMINI_API_KEY", "")
     body = {
-        "contents": [{"parts": [{"text": f"{STYLE[lang]} {text}"}]}],
+        "contents": [{"parts": [{"text": f"{STYLE[lang]}{extra} {text}"}]}],
         "generationConfig": {
             "responseModalities": ["AUDIO"],
             "speechConfig": {"voiceConfig": {"prebuiltVoiceConfig": {"voiceName": voice}}},
@@ -85,6 +85,30 @@ def trim(x, thr_db=-48, pre=0.03, post=0.1):
     return y
 
 
+def split_on_pauses(x, n):
+    """Cut x into n pieces at the n-1 longest pauses (10 ms frames below -42 dB of peak)."""
+    hop = int(0.01 * SR)
+    fr = np.sqrt(np.mean(x[: len(x) // hop * hop].reshape(-1, hop) ** 2, axis=1) + 1e-12)
+    silent = 20 * np.log10(fr / fr.max()) < -42
+    runs, i = [], 0
+    while i < len(silent):
+        if silent[i]:
+            j = i
+            while j < len(silent) and silent[j]:
+                j += 1
+            if i > 0 and j < len(silent):
+                runs.append((j - i, i, j))
+            i = j
+        else:
+            i += 1
+    cuts = sorted(sorted(runs, reverse=True)[: n - 1], key=lambda r: r[1])
+    if len(cuts) < n - 1:
+        raise SystemExit(f"only {len(cuts) + 1} phrases found, expected {n}")
+    bounds = [0] + [((a + b) // 2) * hop for _, a, b in cuts] + [len(x)]
+    print("pauses (s):", [round(c[0] * 0.01, 2) for c in cuts], flush=True)
+    return [x[bounds[k]: bounds[k + 1]] for k in range(n)]
+
+
 def write_wav(path, x):
     pcm = (np.clip(x, -1, 1) * 32767).astype("<i2").tobytes()
     subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "s16le", "-ar", str(SR), "-ac", "1", "-i", "-", str(path)], input=pcm, check=True)
@@ -123,12 +147,21 @@ def main():
     from faster_whisper import WhisperModel
     wm = WhisperModel("large-v3-turbo", device="auto", compute_type="int8")
     meta = {"voice": f"gemini:{voice}", "lines": {}}
-    from concurrent.futures import ThreadPoolExecutor
     items = list(script[lang]["lines"].items())
-    with ThreadPoolExecutor(max_workers=int(os.environ.get("TTS_PARALLEL", "4"))) as ex:
-        results = list(ex.map(lambda kv: tts(kv[1], lang, voice), items))
+    if os.environ.get("TTS_BATCH", "1") == "1":
+        # one request for the whole cut (free-tier friendly, consistent delivery), then split on the pauses
+        pcm, rate, model = tts("\n\n".join(t for _, t in items), lang, voice,
+                               extra=" Read each paragraph as a separate line and leave a clear pause of about one second between paragraphs.")
+        whole = resample(pcm, rate)
+        write_wav(out / "_whole.wav", whole)
+        segs = split_on_pauses(whole, len(items))
+        results = [(seg, SR, model) for seg in segs]
+    else:
+        from concurrent.futures import ThreadPoolExecutor
+        with ThreadPoolExecutor(max_workers=int(os.environ.get("TTS_PARALLEL", "4"))) as ex:
+            results = [(resample(p, r), SR, m) for p, r, m in ex.map(lambda kv: tts(kv[1], lang, voice), items)]
     for (key, text), (pcm, rate, model) in zip(items, results):
-        x = trim(resample(pcm, rate))
+        x = trim(pcm)
         write_wav(out / f"{key}.wav", x)
         words, hyp = align(wm, x, text, lang)
         meta["lines"][key] = {"text": text, "dur": round(len(x) / SR, 3), "words": words}
