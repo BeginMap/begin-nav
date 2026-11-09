@@ -1,0 +1,49 @@
+html, body { margin: 0; width: 1080px; height: 1920px; overflow: hidden; background: #000; }
+#gl { position: absolute; left: 0; top: 0; }
+#ov { position: absolute; inset: 0; pointer-events: none; font-family: 'Rubik', sans-serif; color: #fff; overflow: hidden; }
+
+.hl { position: absolute; left: 60px; right: 60px; perspective: 900px; }
+.hl .w { display: inline-block; }
+.hl .wi { display: inline-block; transform-origin: 50% 70%; will-change: transform, opacity, filter; }
+.hl .acc .wi { color: var(--acc); }
+
+.kicker { position: absolute; left: 80px; right: 80px; text-align: center; }
+
+.cap { position: absolute; left: 90px; right: 90px; text-align: center; font-weight: 800; font-size: 56px; line-height: 1.25;
+  text-shadow: 0 3px 0 rgba(0,0,0,0.35), 0 6px 26px rgba(0,0,0,0.6); }
+.cap .cw { display: inline-block; transform-origin: 50% 80%; }
+
+.rcard { position: absolute; left: 50%; width: 760px; display: flex; align-items: center; gap: 30px; padding: 30px 38px;
+  border-radius: 46px; background: rgba(255,255,255,0.86); backdrop-filter: blur(24px) saturate(1.4);
+  box-shadow: 0 30px 80px rgba(8,16,40,0.35), inset 0 0 0 2px rgba(255,255,255,0.7); color: #0b0d12; }
+.rcard .ric { flex: 0 0 auto; width: 112px; height: 112px; border-radius: 32px; background: linear-gradient(160deg,#ff9a3c,#ff6a00);
+  display: grid; place-items: center; box-shadow: 0 10px 30px rgba(255,106,0,0.45); }
+.rcard .ric svg { width: 70px; height: 70px; }
+.rcard .rt { font-weight: 900; font-size: 62px; line-height: 1.05; }
+.rcard .rm { font-weight: 700; font-size: 40px; color: #4a5263; margin-top: 6px; font-variant-numeric: tabular-nums; }
+
+.chips { position: absolute; left: 40px; right: 40px; display: flex; flex-wrap: wrap; justify-content: center; gap: 22px; }
+.chip { display: flex; align-items: center; gap: 16px; padding: 18px 34px 18px 26px; border-radius: 999px; background: rgba(255,255,255,0.94);
+  color: #0b0d12; font-weight: 800; font-size: 44px; box-shadow: 0 16px 40px rgba(8,16,40,0.28); }
+.chip img { width: 64px; height: 64px; }
+.chip.on { background: #0b0d12; color: #fff; }
+
+.scrim { position: absolute; inset: 0; }
+
+.blk { position: absolute; left: 0; right: 0; text-align: center; }
+.logo-word { font-weight: 900; font-style: italic; font-size: 150px; letter-spacing: -0.01em; color: #fff; }
+.url { font-weight: 800; font-size: 54px; color: #fff; direction: ltr; }
+.small { font-weight: 600; font-size: 40px; color: rgba(255,255,255,0.7); }
+.credits { font-weight: 700; font-size: 50px; color: #fff; direction: ltr; }
+.credits .lbl { display: block; font-size: 38px; font-weight: 600; color: rgba(255,255,255,0.6); margin-bottom: 18px; }
+.pillbtn { display: inline-block; padding: 26px 56px; border-radius: 999px; background: #1d4ed8; color: #fff; font-weight: 900; font-size: 56px;
+  box-shadow: 0 20px 60px rgba(29,78,216,0.5); }
+.ptr { position: absolute; width: 150px; height: 150px; filter: drop-shadow(0 12px 24px rgba(0,0,0,0.45)); transform-origin: 30% 10%; }
+.ptr svg { width: 100%; height: 100%; }
+.cap { padding: 0; }
+.kicker.pill { left: 0; right: 0; text-align: center; white-space: nowrap; }
+.kicker.pill > span { display: inline-block; padding: 18px 40px; border-radius: 999px; background: rgba(255,255,255,0.92); color: #0b1220;
+  box-shadow: 0 14px 40px rgba(8,16,40,0.3); }
+.langlbl { position: absolute; transform: translate(-50%, 0); padding: 16px 34px; border-radius: 999px; background: rgba(255,255,255,0.95); color: #0b1220;
+  font-weight: 900; font-size: 46px; box-shadow: 0 14px 40px rgba(8,16,40,0.35); white-space: nowrap; }
+.langlbl.on { background: #1d4ed8; color: #fff; }

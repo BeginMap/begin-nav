@@ -1,0 +1,32 @@
+{
+ "he": [
+  "00_home",
+  "01_focus",
+  "02_type1",
+  "02_type2",
+  "02_type3",
+  "02_type4",
+  "02_type5",
+  "02_type6",
+  "03_route",
+  "04_3d_b",
+  "05_photo"
+ ],
+ "ru": [
+  "00_home",
+  "01_focus",
+  "02_type1",
+  "02_type2",
+  "02_type3",
+  "02_type4",
+  "02_type5",
+  "02_type6",
+  "02_type7",
+  "03_route",
+  "04_3d_b",
+  "05_photo"
+ ],
+ "en": [
+  "00_home"
+ ]
+}

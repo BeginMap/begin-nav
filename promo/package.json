@@ -1,0 +1,16 @@
+{
+  "name": "begin-map-promo",
+  "version": "1.0.0",
+  "description": "3D motion-graphics promo video for Begin Map, rendered frame-by-frame with three.js",
+  "scripts": {
+    "render:he": "node tools/render.js he build/frames_he 1 30 0 74 2",
+    "render:ru": "node tools/render.js ru build/frames_ru 1 30 0 74 2"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@fontsource/rubik": "^5.3.0",
+    "opentype.js": "^2.0.0",
+    "three": "^0.187.0"
+  },
+  "private": true
+}
