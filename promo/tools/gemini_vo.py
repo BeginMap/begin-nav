@@ -109,6 +109,62 @@ def split_on_pauses(x, n):
     return [x[bounds[k]: bounds[k + 1]] for k in range(n)]
 
 
+def _norm(t, lang):
+    import re
+    import unicodedata
+    t = unicodedata.normalize("NFKD", t.lower())
+    t = "".join(c for c in t if not unicodedata.combining(c))
+    rep = {"ё": "е", "бегин": "begin", "мэп": "map", "мап": "map", "три-дэ": "3d", "מאפ": "מפ", "בגין": "begin"}
+    for a, b in rep.items():
+        t = t.replace(a, b)
+    return re.sub(r"[^\w]", "", t)
+
+
+def split_by_alignment(model, x, lines, lang):
+    """Cut a whole-cut recording into lines using Whisper word timestamps aligned to the script text."""
+    import difflib
+    raw = subprocess.run(["ffmpeg", "-v", "error", "-f", "f32le", "-ar", str(SR), "-ac", "1", "-i", "-",
+                          "-f", "f32le", "-ar", "16000", "-ac", "1", "-"], input=x.tobytes(), capture_output=True, check=True).stdout
+    segs, _ = model.transcribe(np.frombuffer(raw, np.float32), language=lang, word_timestamps=True, beam_size=5)
+    hw = [(w.start, w.end, _norm(w.word, lang)) for s in segs for w in s.words]
+    hstr, hidx = "", []
+    for i, (_, _, t) in enumerate(hw):
+        hstr += t
+        hidx += [i] * len(t)
+    sstr, ends = "", []
+    for line in lines:
+        sstr += "".join(_norm(w, lang) for w in line.split())
+        ends.append(len(sstr))
+    sm = difflib.SequenceMatcher(None, sstr, hstr, autojunk=False)
+    blocks = sm.get_matching_blocks()
+
+    def map_pos(p):  # script char index -> hyp char index (nearest matched)
+        best = None
+        for a, b, n in blocks:
+            if n == 0:
+                continue
+            if a <= p < a + n:
+                return b + (p - a)
+            d = min(abs(p - a), abs(p - (a + n - 1)))
+            if best is None or d < best[0]:
+                best = (d, b if p < a else b + n - 1)
+        return best[1]
+
+    hop = int(0.01 * SR)
+    env = np.sqrt(np.convolve(x ** 2, np.ones(hop) / hop, mode="same"))
+    bounds = [0]
+    for e in ends[:-1]:
+        hi = map_pos(e - 1)
+        wi = hidx[min(hi, len(hidx) - 1)]
+        t_end = hw[wi][1]
+        t_next = hw[wi + 1][0] if wi + 1 < len(hw) else t_end + 0.3
+        a, b = int(t_end * SR), max(int(t_next * SR), int(t_end * SR) + hop)
+        cut = a + int(np.argmin(env[a:b])) if b > a else a
+        bounds.append(cut)
+    bounds.append(len(x))
+    return [x[bounds[k]:bounds[k + 1]] for k in range(len(lines))]
+
+
 def write_wav(path, x):
     pcm = (np.clip(x, -1, 1) * 32767).astype("<i2").tobytes()
     subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "s16le", "-ar", str(SR), "-ac", "1", "-i", "-", str(path)], input=pcm, check=True)
@@ -149,12 +205,17 @@ def main():
     meta = {"voice": f"gemini:{voice}", "lines": {}}
     items = list(script[lang]["lines"].items())
     if os.environ.get("TTS_BATCH", "1") == "1":
-        # one request for the whole cut (free-tier friendly, consistent delivery), then split on the pauses
-        pcm, rate, model = tts("\n\n".join(t for _, t in items), lang, voice,
-                               extra=" Read each paragraph as a separate line and leave a clear pause of about one second between paragraphs.")
-        whole = resample(pcm, rate)
-        write_wav(out / "_whole.wav", whole)
-        segs = split_on_pauses(whole, len(items))
+        # one request for the whole cut (free-tier friendly, consistent delivery), then split by text alignment
+        wf = out / "_whole.wav"
+        if os.environ.get("RESPLIT") == "1" and wf.exists():
+            raw = subprocess.run(["ffmpeg", "-v", "error", "-i", str(wf), "-f", "f32le", "-ac", "1", "-ar", str(SR), "-"], capture_output=True, check=True).stdout
+            whole, model = np.frombuffer(raw, np.float32).copy(), "cached"
+        else:
+            pcm, rate, model = tts("\n\n".join(t for _, t in items), lang, voice,
+                                   extra=" Read each paragraph as a separate line and leave a clear pause of about one second between paragraphs.")
+            whole = resample(pcm, rate)
+            write_wav(wf, whole)
+        segs = split_by_alignment(wm, whole, [t for _, t in items], lang)
         results = [(seg, SR, model) for seg in segs]
     else:
         from concurrent.futures import ThreadPoolExecutor
