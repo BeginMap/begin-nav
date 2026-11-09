@@ -526,7 +526,7 @@ def build_sfx():
         place(fx, whoosh(0.5, 300, 2500, 0.6), at - 0.25, 0.3, pan=[-0.5, 0, 0.5][i])
         place(fx, fm_bell([72, 76, 79][i], 1.0, 2.0, 1.5), at + 0.1, 0.13)
     # finale + CTA
-    place(fx, impact(0.6), c["tagline"] + (1.0 if EDIT == "30" else 0.5), 0.45)
+    place(fx, impact(0.6), c["tagline"] + {"30": 1.0, "silk": 1.5}.get(EDIT, 0.5), 0.45)
     if c["cta"] < c["end"]:
         place(fx, whoosh(0.8, 250, 2500, 0.6), c["cta"] - 0.2, 0.45)
     place(fx, impact(1.1), c["end"], 0.75)
@@ -538,11 +538,12 @@ def build_sfx():
 # ================================================================ VO + MIX
 def load_vo():
     vo = np.zeros(N)
-    meta = json.loads((ROOT / "build" / "vo" / TAG / "vo.json").read_text())
+    VTAG = LANG if EDIT in ("full", "silk") else TAG
+    meta = json.loads((ROOT / "build" / "vo" / VTAG / "vo.json").read_text())
     for k, at in c_vo_at().items():
         if k not in meta["lines"]:
             continue
-        x, sr = sf.read(ROOT / "build" / "vo" / TAG / f"{k}.wav")
+        x, sr = sf.read(ROOT / "build" / "vo" / VTAG / f"{k}.wav")
         assert sr == SR
         i = int(at * SR)
         j = min(N, i + len(x))
@@ -656,8 +657,89 @@ def build_music30():
     return music
 
 
+def build_music_silk():
+    """Liquid-light cut: dark ambient intro, drop on the pin impact (12.5 s), groove, breakdown,
+    big half-time chords under the tagline (52.5 s), final chord on the end card."""
+    drums = np.zeros((N, 2)); bass = np.zeros((N, 2)); pads = np.zeros((N, 2)); arps = np.zeros((N, 2)); fx = np.zeros((N, 2))
+    kicks = []
+    C = {
+        "Dm": (38, [57, 62, 64, 65, 69]), "Bb": (46, [58, 62, 65, 70, 72]), "F": (41, [57, 60, 65, 67, 69]),
+        "C": (48, [55, 60, 64, 67, 74]), "Gm": (43, [55, 58, 62, 67, 69]), "Asus": (45, [57, 62, 64, 69, 71]),
+    }
+    place(pads, pad([38, 45, 53, 64, 69], 12.4, cutoff=1100, attack=2.5, release=0.3, detune=0.12), 0.0, 0.5)
+    # airy shimmer on top
+    for i in range(10):
+        place(arps, fm_bell([81, 84, 88, 86][i % 4], 2.5, 2.0, 1.2), 0.8 + i * 1.1, 0.05, pan=np.sin(i) * 0.6)
+    k = 0
+    while CUES["hookSlam"] + k * BEAT < 6.0:
+        place(drums, tick(1900 if k % 2 == 0 else 1500), CUES["hookSlam"] + k * BEAT, 0.3)
+        k += 1
+    maze = [(6.5, "Dm"), (8.5, "Bb"), (10.5, "Gm"), (11.5, "Asus")]
+    for i, (at, ch) in enumerate(maze):
+        dur = (maze[i + 1][0] if i + 1 < len(maze) else 12.4) - at
+        b, up = C[ch]
+        place(pads, pad(up[:4], dur, cutoff=1400, attack=0.4, release=0.3), at, 0.3)
+        for st in range(int(dur / (BEAT / 2))):
+            place(bass, sub(b, BEAT / 2 * 0.9), at + st * BEAT / 2, 0.45)
+        for st in range(int(dur / (BEAT / 4))):
+            place(arps, filt(pluck(up[[0, 2, 1, 3][st % 4]] + 12, 0.25, 2600), "high", 300), at + st * BEAT / 4, 0.11)
+    place(fx, riser(1.5), 11.0, 0.55)
+    for i in range(16):
+        place(drums, snare(), 11.55 + i * (0.85 / 16), 0.15 + 0.4 * i / 16)
+    seq = ["Bb", "F", "C", "Dm"]
+    prog = [(bar(6 + i), seq[i % 4], "full") for i in range(18)]  # 12.5 .. 48.5
+    prog += [(bar(24), "Dm", "break"), (bar(25), "C", "build")]  # 48.5 .. 52.5
+    prog += [(bar(26), "F", "half"), (bar(27), "Bb", "half"), (bar(28), "Dm", "full"), (bar(29), "C", "full")]
+    end = CUES["end"]
+    for i, (at, ch, mode) in enumerate(prog):
+        nxt = prog[i + 1][0] if i + 1 < len(prog) else end
+        dur = nxt - at
+        if dur <= 0:
+            continue
+        b, up = C[ch]
+        place(pads, pad(up, dur, cutoff=2500 if mode != "break" else 1600, attack=0.25 if mode != "break" else 0.7, release=0.5), at, 0.36)
+        if mode != "break":
+            for st in range(int(round(dur / (BEAT / 2)))):
+                place(bass, sub(b if st % 8 != 7 else b + 7, BEAT / 2 * 0.92), at + st * BEAT / 2, 0.5)
+        pattern = [0, 2, 4, 2, 1, 3, 4, 3]
+        for st in range(int(round(dur / (BEAT / 4)))):
+            place(arps, pluck(up[pattern[st % 8]] + 12, 0.3, 3600 if mode == "full" else 2800), at + st * BEAT / 4, (0.1 if mode == "full" else 0.13) * (1.2 if st % 4 == 0 else 0.8), pan=np.sin(st * 0.7) * 0.5)
+        for bt in range(int(round(dur / BEAT))):
+            tb = at + bt * BEAT
+            if mode in ("full", "build") or (mode == "half" and bt % 4 == 0):
+                place(drums, kick(), tb, 0.7); kicks.append(tb)
+            if mode == "full" and bt % 2 == 1:
+                place(drums, clap(), tb, 0.5)
+            if mode == "half" and bt % 4 == 2:
+                place(drums, clap(), tb, 0.55)
+            if mode in ("full", "build", "break"):
+                place(drums, hat(), tb + BEAT / 2, 0.2, pan=0.3)
+    for i in range(20):
+        place(drums, snare(), 51.1 + i * (1.3 / 20), 0.12 + 0.45 * i / 20)
+    place(fx, riser(1.6), 50.85, 0.5)
+    place(pads, pad([41, 53, 57, 60, 65, 69, 72], 3.0, cutoff=3000, attack=0.02, release=1.6), end, 0.55)
+    for i, m in enumerate([65, 69, 72, 77]):
+        place(arps, fm_bell(m, 2.5), end + i * 0.09, 0.2, pan=(i - 1.5) * 0.3)
+    place(bass, sub(29, 2.5), end, 0.7)
+    pump = np.ones(N)
+    for kt in kicks:
+        i = int(kt * SR); j = min(N, i + int(0.32 * SR))
+        pump[i:j] = np.minimum(pump[i:j], 1 - 0.55 * np.exp(-np.arange(j - i) / SR * 9))
+    for bus in (bass, pads, arps):
+        bus *= pump[:, None]
+    drums = drums * 0.75
+    music = drums + bass * 0.3 + pads * 0.85 + arps * 0.75 + fx * 0.6
+    music += reverb(pads * 0.4 + arps * 0.55 + drums * 0.08, IR_HALL) * 0.55
+    lows = filt(music, "low", 90); highs = filt(music, "high", 9000)
+    music = music - 0.45 * lows - 0.5 * highs
+    t = np.arange(N) / SR
+    music *= np.minimum(1, t / 0.5)[:, None]
+    music *= np.clip((TOTAL - t) / 1.2, 0, 1)[:, None] ** 1.5
+    return music
+
+
 def main():
-    music = build_music30() if EDIT == "30" else build_music()
+    music = build_music30() if EDIT == "30" else build_music_silk() if EDIT == "silk" else build_music()
     sfx = build_sfx()
     vo, _ = load_vo()
     duck = duck_curve(vo)

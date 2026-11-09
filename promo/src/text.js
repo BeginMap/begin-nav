@@ -84,6 +84,11 @@ export const VO_AT = {
 
 export const EDITS = {
   full: { T, VO_AT },
+  // "liquid light" cut: tighter pacing, same narration
+  silk: {
+    T: { hook: 0, maze: 6, reveal: 11, search: 17, route: 22.5, start: 28.5, chips: 34.5, view3d: 41, langs: 48, tagline: 51, cta: 55.5, end: 59, total: 62.5 },
+    VO_AT: { hook: 0.6, maze: 6.1, reveal: 12.8, search: 17.3, route: 22.8, start: 28.8, chips: 34.8, view3d: 41.3, langs: 48.2, tagline: 51.3, cta: 55.8 },
+  },
   30: {
     T: { hook: 0, maze: 4, reveal: 4, search: 8, route: 12.5, start: 17.5, chips: 17.5, view3d: 21, langs: 23.5, tagline: 23.5, cta: 27, end: 27, total: 30 },
     VO_AT: { hook: 0.4, reveal: 5.0, search: 8.4, route: 12.9, chips: 17.8, view3d: 21.05, tagline: 23.85, cta: 27.2 },

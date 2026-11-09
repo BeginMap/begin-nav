@@ -24,6 +24,12 @@ Finished videos: `out/begin-map-promo-{he,ru}.mp4` (74 s) and `out/begin-map-pro
 | 60–70 s | Golden hour crane shot, tagline, QR code + link |
 | 70–74 s | End card with the app creators |
 
+## Two looks
+
+- **Liquid light** (`--edit silk`, `npm run make:all`) — the main cut: glowing silk light in the dark,
+  the school as a floating diorama, UI popping out of the phone as 3D glass, 62 s, Hebrew.
+- **City** (default edit, `npm run make:city`) — the original fly-through of the 3D campus, 74 s (+ 30 s cut).
+
 ## Render on your own PC (fast, uses the graphics card)
 
 Needs only [Node.js](https://nodejs.org) 18+. In a terminal (PowerShell on Windows):
@@ -33,10 +39,8 @@ git clone -b claude/3d-motion-graphics-video-f1p5g4 https://github.com/BeginMap/
 cd begin-nav/promo
 npm install
 npx playwright install chromium
-npm run make:he       # -> out/begin-map-promo-he.mp4   (74 s, Hebrew)
-npm run make:ru       # -> out/begin-map-promo-ru.mp4   (74 s, Russian)
-npm run make:he30     # -> out/begin-map-promo-he-30.mp4 (30 s)
-npm run make:ru30     # -> out/begin-map-promo-ru-30.mp4 (30 s)
+npm run make:all      # -> out/begin-map-promo-he-silk.mp4 (liquid light, Hebrew)
+npm run make:city     # -> out/begin-map-promo-he.mp4      (city fly-through, Hebrew)
 ```
 
 With `--gpu` the renderer switches to high quality (`q=high`): 8-sample motion blur, ground-truth ambient

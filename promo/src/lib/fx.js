@@ -188,7 +188,8 @@ export function makeHoloGrid(w = 240, h = 200) {
   const m = new THREE.ShaderMaterial({
     transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false,
     uniforms: { uR: { value: 0 }, uOpacity: { value: 0 }, uCenter: { value: new THREE.Vector2() }, uColor: { value: new THREE.Color('#45c3ff') } },
-    vertexShader: `varying vec3 vW; void main(){ vec4 w = modelMatrix * vec4(position,1.0); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`,
+    // grid in the plane's own (metre) coordinates so it also works inside a scaled diorama
+    vertexShader: `varying vec3 vW; void main(){ vW = vec3(position.x, 0.0, -position.y); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
     fragmentShader: `uniform float uR, uOpacity; uniform vec2 uCenter; uniform vec3 uColor; varying vec3 vW;
       void main(){
         vec2 g = abs(fract(vW.xz / 4.0) - 0.5);
