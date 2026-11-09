@@ -282,11 +282,11 @@ export async function createDirector(ctx) {
     world.set({ night: 1, fogNear: 45, fogFar: 340 });
     post.bloom.strength = 0.7;
     const k = t / T.maze;
-    const pos = V(lerp(-2, -7, ease.inOutQuad(k)), lerp(5.5, 6.5, k), lerp(62, 24, ease.inOutQuad(k)));
+    const pos = V(lerp(-2, -7, ease.inOutQuad(k)), lerp(5.5, 6.5, k), lerp(50, 22, ease.inOutQuad(k)));
     const look = V(-6, lerp(2.0, 4.2, k), lerp(20, -10, k));
     // opening drone dive into the courtyard
     const dv = ease.inOutCubic(clamp(t / 2.6));
-    pos.lerp(V(-40, 95, 120), 1 - dv);
+    pos.lerp(V(-40, 95, 110), 1 - dv);
     look.lerp(V(-6, 0, 10), 1 - dv);
     pos.x += wobble(t, 1, 0.3) * dv;
     pos.y += wobble(t, 2, 0.12) * dv;
@@ -367,9 +367,9 @@ export async function createDirector(ctx) {
     pinShadow.position.set(COURT.x, 0.06, COURT.z);
     pinShadow.scale.setScalar(lerp(0.3, 1.6, fall));
     // grade
-    setNight(1);
+    setNight(1 - (after > 0 ? ease.inOutQuad(clamp((after - 1.3) / 0.9)) : 0));
     G.uRevealCenter.value.set(COURT.x, COURT.z);
-    G.uRevealRadius.value = after > 0 ? ease.outCubic(clamp(after / 1.9)) * 280 : -1000;
+    G.uRevealRadius.value = after > 0 ? ease.outCubic(clamp(after / 1.9)) * 280 + Math.max(0, after - 1.5) * 1500 : -1000;
     G.uRing.value = after > 0 ? 1 - clamp(after / 2.2) : 0;
     const skyN = 1 - ease.inOutQuad(clamp((after - 0.15) / 1.5));
     nightNow = skyN;
@@ -655,6 +655,7 @@ export async function createDirector(ctx) {
     const look = DOL.clone().add(V(0, 4, 0)).lerp(V(-6, 0, 14), u);
     setCam(pos, look, 40);
     const [l1, l2] = TX.tagline.split('|');
+    topScrim(t, T.tagline + 0.2, T.end - 0.2);
     OV.kicker('tagLogo', { t, tIn: wt('tagline', 0) - 0.05, tOut: T.cta - 0.3, html: '<span class="logo-word" style="font-size:96px">BEGIN MAP</span>', y: 190, size: 96, dir: 'ltr', color: '#fff' });
     OV.headline('tag1', { t, tIn: wt('tagline', S.tag1) - 0.08, tOut: T.cta - 0.3, text: l1, y: 360, size: 132 * HS, dir: TX.dir, style: 'rise' });
     OV.headline('tag2', { t, tIn: wt('tagline', S.tag2) - 0.08, tOut: T.cta - 0.3, text: l2, y: 510, size: 132 * HS, dir: TX.dir, style: 'rise', accent: '#ffd24a' });

@@ -11,6 +11,7 @@ export const G = {
   uTime: { value: 0 },
   uGlowCenter: { value: new THREE.Vector2(0, 0) },
   uGlowRadius: { value: 1e5 },
+  uDetail: { value: null },
 };
 
 const VERT_DECL = 'varying vec3 vWorldN;\n';
@@ -31,6 +32,7 @@ uniform float uRing;
 uniform float uWarm;
 uniform vec2 uGlowCenter;
 uniform float uGlowRadius;
+uniform sampler2D uDetail;
 `;
 
 // opts.glow: GLSL expression (vec3) added at night (e.g. lit windows)
@@ -48,6 +50,8 @@ export function graded(material, opts = {}) {
         float dRev = distance(vWorldN.xz, uRevealCenter);
         float nightAmt = uNight * smoothstep(uRevealRadius - 14.0, uRevealRadius, dRev);
         vec3 c = gl_FragColor.rgb;
+        ${opts.detail ? `float dn = texture2D(uDetail, vWorldN.xz * 0.37).r * 0.5 + texture2D(uDetail, vWorldN.xz * 0.061).r * 0.5;
+        c *= mix(1.0, 0.78 + 0.44 * dn, ${opts.detail.toFixed(2)});` : ''}
         float l = dot(c, vec3(0.299, 0.587, 0.114));
         float gk = smoothstep(uGlowRadius, uGlowRadius - 12.0, distance(vWorldN.xz, uGlowCenter));
         vec3 nightC = l * ${nightTint} * 0.42 + c * 0.012 + (${glow}) * gk;
@@ -59,6 +63,6 @@ export function graded(material, opts = {}) {
       }`
     );
   };
-  material.customProgramCacheKey = () => 'graded:' + (opts.key || '') + glow;
+  material.customProgramCacheKey = () => 'graded:' + (opts.key || '') + glow + (opts.detail || 0);
   return material;
 }

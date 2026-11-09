@@ -8,6 +8,7 @@ export function makeWorld(scene) {
     uStudio: { value: 0 },
     uStudioTop: { value: new THREE.Color('#f4f7fd') },
     uStudioBot: { value: new THREE.Color('#d9e2f2') },
+    uFog: { value: new THREE.Color('#c9dbf2') },
   };
   const sky = new THREE.Mesh(
     new THREE.SphereGeometry(1500, 48, 24),
@@ -18,7 +19,7 @@ export function makeWorld(scene) {
       uniforms: skyU,
       vertexShader: `varying vec3 vDir; void main(){ vDir = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
       fragmentShader: `
-        uniform float uNight, uWarm, uStudio; uniform vec3 uStudioTop, uStudioBot; varying vec3 vDir;
+        uniform float uNight, uWarm, uStudio; uniform vec3 uStudioTop, uStudioBot, uFog; varying vec3 vDir;
         float hash(vec3 p){ p = fract(p*0.3183099+.1); p *= 17.0; return fract(p.x*p.y*p.z*(p.x+p.y+p.z)); }
         void main(){
           float h = clamp(vDir.y, -1.0, 1.0);
@@ -28,11 +29,15 @@ export function makeWorld(scene) {
           vec3 warm = mix(warmHor, warmTop, pow(max(h,0.0), 0.45));
           vec3 nTop = vec3(0.010, 0.016, 0.045), nHor = vec3(0.045, 0.075, 0.16);
           vec3 night = mix(nHor, nTop, pow(max(h,0.0), 0.5));
-          vec3 sd = floor(vDir * 420.0);
-          float st = step(0.9975, hash(sd)) * smoothstep(0.05, 0.35, h);
-          night += vec3(st) * 0.9;
+          vec3 sp = vDir * 260.0;
+          vec3 cell = floor(sp);
+          float hs = hash(cell);
+          vec3 fo = fract(sp) - 0.5 - (vec3(hash(cell + 3.1), hash(cell + 7.7), hash(cell + 1.3)) - 0.5) * 0.5;
+          float st = step(0.965, hs) * smoothstep(0.16, 0.0, length(fo)) * (0.4 + 0.6 * hash(cell + 9.2));
+          night += vec3(0.85, 0.9, 1.0) * st * smoothstep(0.04, 0.3, h) * 1.4;
           vec3 c = mix(day, warm, uWarm);
           c = mix(c, night, uNight);
+          c = mix(c, uFog, smoothstep(0.07, -0.01, h));
           vec3 studio = mix(uStudioBot, uStudioTop, smoothstep(-0.3, 0.6, h));
           c = mix(c, studio, uStudio);
           gl_FragColor = vec4(c, 1.0);
@@ -66,6 +71,7 @@ export function makeWorld(scene) {
     skyU.uWarm.value = warm;
     skyU.uStudio.value = studio;
     fog.color.copy(fogDay).lerp(fogWarm, warm).lerp(fogNight, night);
+    skyU.uFog.value.copy(fog.color);
     fog.near = fogNear;
     fog.far = fogFar;
     sun.color.set('#fff4e6').lerp(new THREE.Color('#ffc38a'), warm);
@@ -75,4 +81,29 @@ export function makeWorld(scene) {
   }
   set();
   return { sky, sun, hemi, fog, set, skyU };
+}
+
+// Environment map for glossy materials (window glass, metal): soft sky dome, warm ground, a sun.
+export function makeSkyEnv(renderer) {
+  const sc = new THREE.Scene();
+  const dome = new THREE.Mesh(
+    new THREE.SphereGeometry(50, 32, 16),
+    new THREE.ShaderMaterial({
+      side: THREE.BackSide,
+      vertexShader: `varying vec3 vD; void main(){ vD = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
+      fragmentShader: `varying vec3 vD; void main(){
+        float h = vD.y;
+        vec3 sky = mix(vec3(0.85, 0.9, 0.98), vec3(0.28, 0.5, 0.92), pow(max(h, 0.0), 0.6));
+        vec3 gnd = mix(vec3(0.62, 0.55, 0.45), vec3(0.4, 0.36, 0.3), clamp(-h * 3.0, 0.0, 1.0));
+        vec3 c = h > 0.0 ? sky : gnd;
+        vec3 sunDir = normalize(vec3(-0.45, 0.75, 0.4));
+        c += vec3(1.0, 0.95, 0.85) * pow(max(dot(vD, sunDir), 0.0), 220.0) * 30.0;
+        gl_FragColor = vec4(c, 1.0); }`,
+    })
+  );
+  sc.add(dome);
+  const pm = new THREE.PMREMGenerator(renderer);
+  const tex = pm.fromScene(sc, 0.0).texture;
+  pm.dispose();
+  return tex;
 }

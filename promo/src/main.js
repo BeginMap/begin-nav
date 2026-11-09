@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { makeComposer } from './lib/post.js';
-import { makeWorld } from './lib/world.js';
+import { makeWorld, makeSkyEnv } from './lib/world.js';
 import { buildCampus } from './lib/campus.js';
 import { loadScreens } from './lib/phone.js';
 import { createDirector } from './director.js';
@@ -44,7 +44,8 @@ const ready = (async () => {
     json('../assets/routes.json'),
     json(`../build/vo/${lang}/vo.json`),
   ]);
-  const campus = await buildCampus(renderer);
+  const skyEnv = makeSkyEnv(renderer);
+  const campus = await buildCampus(renderer, { lang, rooms, skyEnv });
   scene.add(campus.root);
   const screens = await loadScreens(lang, manifest[lang]);
   const homes = {};
@@ -61,6 +62,7 @@ const ready = (async () => {
 })();
 
 window.__ready = ready.then(() => true);
+window.__dbg = { scene, camera, post, renderer };
 window.cues = async () => (await ready).director.cues;
 
 window.seek = async (t) => {
