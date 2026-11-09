@@ -20,10 +20,12 @@ from scipy import signal
 SR = 48000
 ROOT = Path(__file__).resolve().parents[1]
 LANG = sys.argv[1] if len(sys.argv) > 1 else "he"
-CUES = json.loads((ROOT / "build" / f"cues_{LANG}.json").read_text())
+EDIT = sys.argv[2] if len(sys.argv) > 2 else "full"
+TAG = LANG if EDIT == "full" else f"{LANG}-{EDIT}"
+CUES = json.loads((ROOT / "generated" / TAG / "cues.json").read_text())
 TOTAL = float(CUES["total"])
 N = int(TOTAL * SR)
-OUT = ROOT / "build" / "audio" / LANG
+OUT = ROOT / "build" / "audio" / TAG
 OUT.mkdir(parents=True, exist_ok=True)
 RNG = np.random.default_rng(7)
 
@@ -464,7 +466,8 @@ def build_sfx():
     c = CUES
     # opening dive
     place(fx, whoosh(2.4, 2500, 250, 0.35), 0.05, 0.55)
-    place(fx, reverb(school_bell(), IR_HALL) * 0.6 + stereo(school_bell()) * 0.5, c["bell"] - 0.35, 0.55)
+    if c.get("bell") is not None:
+        place(fx, reverb(school_bell(), IR_HALL) * 0.6 + stereo(school_bell()) * 0.5, c["bell"] - 0.35, 0.55)
     place(fx, impact(0.7), c["hookSlam"], 0.6)
     place(fx, whoosh(0.5, 500, 5000, 0.7), c["whip1"] - 0.2, 0.6, pan=0.3)
     for i, at in enumerate(c["mazeStarts"]):
@@ -500,10 +503,11 @@ def build_sfx():
     for i, m in enumerate([77, 81, 84]):
         place(fx, fm_bell(m, 1.4, 3.0, 2.0), c["pinArrive"] + 0.05 + i * 0.08, 0.16, pan=(i - 1) * 0.35)
     # start: tap on the map
-    place(fx, tap_click(), c["startTap"], 0.55)
-    place(fx, pop(700, 300), c["startTap"] + 0.05, 0.35)
-    rd = sweep_noise(1.9, 1500, 6000) * np.sin(np.pi * tt(1.9) / 1.9) * 0.25
-    place(fx, rd, c["startRoute"], 0.3)
+    if c.get("startTap") is not None:
+        place(fx, tap_click(), c["startTap"], 0.55)
+        place(fx, pop(700, 300), c["startTap"] + 0.05, 0.35)
+        rd = sweep_noise(1.9, 1500, 6000) * np.sin(np.pi * tt(1.9) / 1.9) * 0.25
+        place(fx, rd, c["startRoute"], 0.3)
     # chips
     for k, at in enumerate(c["chips"]):
         for i in range(5):
@@ -522,8 +526,9 @@ def build_sfx():
         place(fx, whoosh(0.5, 300, 2500, 0.6), at - 0.25, 0.3, pan=[-0.5, 0, 0.5][i])
         place(fx, fm_bell([72, 76, 79][i], 1.0, 2.0, 1.5), at + 0.1, 0.13)
     # finale + CTA
-    place(fx, impact(0.6), c["tagline"] + 0.5, 0.45)
-    place(fx, whoosh(0.8, 250, 2500, 0.6), c["cta"] - 0.2, 0.45)
+    place(fx, impact(0.6), c["tagline"] + (1.0 if EDIT == "30" else 0.5), 0.45)
+    if c["cta"] < c["end"]:
+        place(fx, whoosh(0.8, 250, 2500, 0.6), c["cta"] - 0.2, 0.45)
     place(fx, impact(1.1), c["end"], 0.75)
     place(fx, sparkle(1.2), c["end"] + 0.2, 0.5)
     fx = filt(fx, "low", 10000)
@@ -533,9 +538,11 @@ def build_sfx():
 # ================================================================ VO + MIX
 def load_vo():
     vo = np.zeros(N)
-    meta = json.loads((ROOT / "build" / "vo" / LANG / "vo.json").read_text())
+    meta = json.loads((ROOT / "build" / "vo" / TAG / "vo.json").read_text())
     for k, at in c_vo_at().items():
-        x, sr = sf.read(ROOT / "build" / "vo" / LANG / f"{k}.wav")
+        if k not in meta["lines"]:
+            continue
+        x, sr = sf.read(ROOT / "build" / "vo" / TAG / f"{k}.wav")
         assert sr == SR
         i = int(at * SR)
         j = min(N, i + len(x))
@@ -585,8 +592,72 @@ def limiter(x, ceiling=0.89, look=0.004):
     return x * g[:, None]
 
 
+def build_music30():
+    """30-second cut: short night intro, drop at 4.5 s, groove, finale, end chord at 27 s."""
+    drums = np.zeros((N, 2)); bass = np.zeros((N, 2)); pads = np.zeros((N, 2)); arps = np.zeros((N, 2)); fx = np.zeros((N, 2))
+    kicks = []
+    C = {
+        "Dm": (38, [57, 62, 64, 65, 69]), "Bb": (46, [58, 62, 65, 70, 72]), "F": (41, [57, 60, 65, 67, 69]),
+        "C": (48, [55, 60, 64, 67, 74]), "Gm": (43, [55, 58, 62, 67, 69]),
+    }
+    place(pads, pad([38, 45, 53, 64], 4.4, cutoff=900, attack=1.2, release=0.3, detune=0.1), 0.0, 0.55)
+    k = 0
+    while CUES["hookSlam"] + k * BEAT < 4.3:
+        place(drums, tick(1900 if k % 2 == 0 else 1500), CUES["hookSlam"] + k * BEAT, 0.4)
+        k += 1
+    place(fx, riser(1.25), 3.2, 0.5)
+    for i in range(14):
+        place(drums, snare(), 3.62 + i * (0.8 / 14), 0.15 + 0.4 * i / 14)
+    end = CUES["end"]
+    seq = ["Bb", "F", "C", "Dm"]
+    prog = [(bar(2 + i), seq[i % 4], "full") for i in range(9)]  # 4.5 .. 22.5
+    prog += [(bar(11), "C", "build"), (bar(12), "F", "half"), (bar(13), "Bb", "half")]
+    for i, (at, ch, mode) in enumerate(prog):
+        nxt = prog[i + 1][0] if i + 1 < len(prog) else end
+        dur = nxt - at
+        b, up = C[ch]
+        place(pads, pad(up, dur, cutoff=2500 if mode != "build" else 1800, attack=0.25, release=0.5), at, 0.34)
+        for st in range(int(round(dur / (BEAT / 2)))):
+            place(bass, sub(b if st % 8 != 7 else b + 7, BEAT / 2 * 0.92), at + st * BEAT / 2, 0.5)
+        pattern = [0, 2, 4, 2, 1, 3, 4, 3]
+        for st in range(int(round(dur / (BEAT / 4)))):
+            place(arps, pluck(up[pattern[st % 8]] + 12, 0.3, 3600), at + st * BEAT / 4, 0.1 * (1.2 if st % 4 == 0 else 0.8), pan=np.sin(st * 0.7) * 0.5)
+        for bt in range(int(round(dur / BEAT))):
+            tb = at + bt * BEAT
+            if mode in ("full", "build") or (mode == "half" and bt % 4 == 0):
+                place(drums, kick(), tb, 0.7); kicks.append(tb)
+            if mode == "full" and bt % 2 == 1:
+                place(drums, clap(), tb, 0.5)
+            if mode == "half" and bt % 4 == 2:
+                place(drums, clap(), tb, 0.55)
+            if mode in ("full", "build"):
+                place(drums, hat(), tb + BEAT / 2, 0.2, pan=0.3)
+    for i in range(14):
+        place(drums, snare(), 23.6 + i * (0.8 / 14), 0.12 + 0.4 * i / 14)
+    place(fx, riser(1.0), 23.45, 0.4)
+    place(pads, pad([41, 53, 57, 60, 65, 69, 72], 2.4, cutoff=3000, attack=0.02, release=1.4), end, 0.55)
+    for i, m in enumerate([65, 69, 72, 77]):
+        place(arps, fm_bell(m, 2.5), end + i * 0.09, 0.2, pan=(i - 1.5) * 0.3)
+    place(bass, sub(29, 2.5), end, 0.7)
+    pump = np.ones(N)
+    for kt in kicks:
+        i = int(kt * SR); j = min(N, i + int(0.32 * SR))
+        pump[i:j] = np.minimum(pump[i:j], 1 - 0.55 * np.exp(-np.arange(j - i) / SR * 9))
+    for bus in (bass, pads, arps):
+        bus *= pump[:, None]
+    drums = drums * 0.75
+    music = drums + bass * 0.3 + pads * 0.85 + arps * 0.75 + fx * 0.6
+    music += reverb(pads * 0.35 + arps * 0.5 + drums * 0.08, IR_HALL) * 0.5
+    lows = filt(music, "low", 90); highs = filt(music, "high", 9000)
+    music = music - 0.45 * lows - 0.5 * highs
+    t = np.arange(N) / SR
+    music *= np.minimum(1, t / 0.3)[:, None]
+    music *= np.clip((TOTAL - t) / 1.0, 0, 1)[:, None] ** 1.5
+    return music
+
+
 def main():
-    music = build_music()
+    music = build_music30() if EDIT == "30" else build_music()
     sfx = build_sfx()
     vo, _ = load_vo()
     duck = duck_curve(vo)
@@ -609,6 +680,11 @@ def main():
     sf.write(OUT / "sfx.wav", np.clip(sfx_n, -1, 1), SR, subtype="PCM_24")
     sf.write(OUT / "vo.wav", np.clip(vo_n, -1, 1), SR, subtype="PCM_24")
     sf.write(OUT / "mix.wav", np.clip(mix, -1, 1), SR, subtype="PCM_24")
+    # render-time copy (tracked in git) used by tools/make.js
+    import subprocess
+    gen = ROOT / "generated" / (LANG if EDIT == "full" else f"{LANG}-{EDIT}")
+    gen.mkdir(parents=True, exist_ok=True)
+    subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", str(OUT / "mix.wav"), "-c:a", "flac", "-compression_level", "8", str(gen / "mix.flac")], check=True)
     print("wrote", OUT)
 
 

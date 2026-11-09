@@ -8,7 +8,7 @@ import { makePhone } from './lib/phone.js';
 import { photoCard, qrCard, labelCard } from './lib/cards.js';
 import { makeLogo3D } from './lib/logo3d.js';
 import * as OV from './lib/overlay.js';
-import { TEXT, PHOTOS, T, VO_AT } from './text.js';
+import { TEXT, PHOTOS, EDITS } from './text.js';
 
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
 const W2 = (x, y) => { const [X, Z] = px2w(x, y); return V(X, 0, Z); };
@@ -17,15 +17,23 @@ const W2 = (x, y) => { const [X, Z] = px2w(x, y); return V(X, 0, Z); };
 export async function createDirector(ctx) {
   const { scene, camera, world, post, campus, envMap, lang, screens, homes, vo, rooms, routesJson } = ctx;
   const TX = TEXT[lang];
-  const S = TX.sync;
+  const EDIT = ctx.edit === '30' ? '30' : 'full';
+  const { T, VO_AT } = EDITS[EDIT];
+  const S = EDIT === '30' ? TX.sync30 : TX.sync;
+  const hasStart = T.chips > T.start;
+  const kH = T.maze / 8; // hook time scale (1 for the full cut)
   const rtl = TX.dir === 'rtl';
   const HS = TX.hScale || 1;
   scene.add(camera);
 
   // ---- timing helpers -------------------------------------------------------
   const words = (line) => vo.lines[line].words;
-  const wt = (line, k) => { const w = words(line); return VO_AT[line] + w[k < 0 ? w.length + k : Math.min(k, w.length - 1)].t0; };
-  const lineEnd = (line) => VO_AT[line] + vo.lines[line].dur;
+  const wt = (line, k) => {
+    if (!vo.lines[line] || k == null) return null;
+    const w = words(line);
+    return VO_AT[line] + w[k < 0 ? w.length + k : Math.min(k, w.length - 1)].t0;
+  };
+  const lineEnd = (line) => (vo.lines[line] ? VO_AT[line] + vo.lines[line].dur : null);
 
   // caption words with brand merges / replacements
   const capWords = {};
@@ -215,7 +223,7 @@ export async function createDirector(ctx) {
   const seqV3d = [
     { at: 0, tex: screens['03_route'] },
     { at: v3dTapT + 0.2, tex: screens['04_3d_b'], mode: 2, dur: 0.5 },
-    { at: lineEnd('view3d') - 1.0, tex: screens['05_photo'], mode: 0, dur: 0.35 },
+    ...(T.langs - T.view3d > 5 ? [{ at: lineEnd('view3d') - 1.0, tex: screens['05_photo'], mode: 0, dur: 0.35 }] : []),
   ];
 
   let nightNow = 0;
@@ -285,35 +293,35 @@ export async function createDirector(ctx) {
     const pos = V(lerp(-2, -7, ease.inOutQuad(k)), lerp(5.5, 6.5, k), lerp(50, 22, ease.inOutQuad(k)));
     const look = V(-6, lerp(2.0, 4.2, k), lerp(20, -10, k));
     // opening drone dive into the courtyard
-    const dv = ease.inOutCubic(clamp(t / 2.6));
+    const dv = ease.inOutCubic(clamp(t / (2.6 * kH)));
     pos.lerp(V(-40, 95, 110), 1 - dv);
     look.lerp(V(-6, 0, 10), 1 - dv);
     pos.x += wobble(t, 1, 0.3) * dv;
     pos.y += wobble(t, 2, 0.12) * dv;
     look.x += wobble(t, 4, 0.6) * dv;
     G.uGlowCenter.value.set(-6, -4);
-    G.uGlowRadius.value = lerp(-10, 220, ease.inQuad(clamp((t - 0.3) / 3.2)));
+    G.uGlowRadius.value = lerp(-10, 220, ease.inQuad(clamp((t - 0.3 * kH) / (3.2 * kH))));
     let roll = wobble(t, 3, 0.02);
     // whip out
-    const wk = ease.inCubic(remap(t, 7.55, 8.0));
+    const wk = ease.inCubic(remap(t, T.maze - 0.45, T.maze));
     look.x += wk * 40;
     roll += wk * 0.15;
     setCam(pos, look, 40 - wk * 6, roll);
     hookTags.forEach((s, i) => {
-      const a = 0.9 + i * 0.3;
+      const a = (0.9 + i * 0.3) * kH;
       const sc = spring(t, a, { freq: 2.0, damp: 0.5 });
       s.position.copy(s.userData.base).add(V(0, Math.sin(t * 1.3 + i) * 0.3, 0));
       showSprite(s, sc, clamp((t - a) / 0.2) * (1 - wk));
     });
     hookQ.forEach((s, i) => {
-      const a = 2.3 + i * 0.42;
+      const a = (2.3 + i * 0.42) * kH;
       const sc = spring(t, a, { freq: 2.6, damp: 0.38 });
       s.position.copy(s.userData.base).add(V(0, Math.sin(t * 2 + i * 2) * 0.35, 0));
       showSprite(s, sc, clamp((t - a) / 0.15) * (1 - wk));
     });
-    F().uFade.value = ease.outQuad(clamp(t / 1.0));
+    F().uFade.value = ease.outQuad(clamp(t / (1.0 * kH)));
     F().uFlash.value = wk * 0.25;
-    OV.headline('hook', { t, tIn: wt('hook', -2) - 0.12, tOut: 7.55, text: TX.hook, y: 250, size: 150 * HS, dir: TX.dir, style: 'slam', stagger: 0.12, accent: '#4f8dff' });
+    OV.headline('hook', { t, tIn: wt('hook', -2) - 0.12, tOut: T.maze - 0.45, text: TX.hook, y: 250, size: 150 * HS, dir: TX.dir, style: 'slam', stagger: 0.12, accent: '#4f8dff' });
   }
   const F = () => post.finish.uniforms;
 
@@ -401,7 +409,7 @@ export async function createDirector(ctx) {
     setCam(pos, look, 40);
     // 3D wordmark (camera space)
     const tl = wt('reveal', S.revealLogo) - 0.2;
-    const out = ease.inCubic(remap(t, 19.45, 19.95));
+    const out = ease.inCubic(remap(t, T.search - 0.55, T.search - 0.05));
     if (t > tl) {
       logo.face.color.set('#1d4ed8');
       logo.side.color.set('#0a1f66');
@@ -419,7 +427,7 @@ export async function createDirector(ctx) {
         l.scale.setScalar(Math.max(0.001, s * (1 - out)));
       });
     }
-    OV.kicker('revealSub', { t, tIn: wt('reveal', S.revealSub) - 0.05, tOut: 19.5, html: `<span>${TX.revealSub}</span>`, pill: true, y: 640, size: 50, dir: TX.dir, color: '#0b1220', weight: 800 });
+    OV.kicker('revealSub', { t, tIn: wt('reveal', S.revealSub) - 0.05, tOut: T.search - 0.5, html: `<span>${TX.revealSub}</span>`, pill: true, y: 640, size: 50, dir: TX.dir, color: '#0b1220', weight: 800 });
   }
 
   // 4. SEARCH — the phone -------------------------------------------------------
@@ -443,7 +451,8 @@ export async function createDirector(ctx) {
     F().uFlash.value = ease.inQuad(remap(t, T.route - 0.25, T.route)) * 0.85;
     // kinetic words
     topScrim(t, T.search + 0.2, T.route - 0.3);
-    const ins = S.search.map((i) => wt('search', i) - 0.05);
+    const ins = S.search.map((i) => (i == null ? null : wt('search', i) - 0.05));
+    if (ins[2] == null) ins[2] = Math.min(ins[1] + 1.1, T.route - 1.0);
     TX.search.forEach((w, i) => {
       OV.headline('search' + i, { t, tIn: ins[i], tOut: i < 2 ? ins[i + 1] - 0.12 : T.route - 0.45, text: w, y: 215, size: 128 * HS, dir: TX.dir, style: 'pop', accent: '#ffb23d' });
     });
@@ -534,20 +543,20 @@ export async function createDirector(ctx) {
   function sceneChips(t) {
     world.set({ night: 0 });
     const k = remap(t, T.chips, T.view3d);
-    const pressT = wt('chips', S.chipPress);
+    const pressT = S.chipPress == null ? T.chips + 2.3 : wt('chips', S.chipPress);
     const C = V(4, 0, 6);
     const wide = { pos: orbit(C, lerp(1.15, 1.45, ease.inOutQuad(k)), 132, 104), look: C };
     const target = routeT.pointAt(1);
     const mid = HERE.clone().lerp(target, 0.5);
     const close = { pos: mid.clone().add(V(40, 62, 58)), look: mid };
     const b = ease.inOutCubic(remap(t, pressT + 0.1, pressT + 1.6));
-    const [sp7, sl7] = blendCam(ENDPOSE.start, wide.pos.clone().lerp(close.pos, b), wide.look.clone().lerp(close.look, b), t, T.chips, 1.4);
+    const [sp7, sl7] = blendCam(hasStart ? ENDPOSE.start : ENDPOSE.route, wide.pos.clone().lerp(close.pos, b), wide.look.clone().lerp(close.look, b), t, T.chips, 1.4);
     setCam(sp7, sl7, 38);
     hereDot.visible = true;
     hereDot.position.copy(HERE);
     hereDot.scale.setScalar(1.35);
     hereDot.userData.halo.scale.setScalar(1.5 + (Math.sin(t * 4) * 0.5 + 0.5) * 1.6);
-    routeC.set(1, { time: t, opacity: 1 - clamp((t - T.chips) / 0.5) });
+    if (hasStart) routeC.set(1, { time: t, opacity: 1 - clamp((t - T.chips) / 0.5) });
     const kinds = ['wc', 'office', 'shelter'];
     kinds.forEach((kind, ki) => {
       const at = wt('chips', S.chips[ki]) - 0.05;
@@ -713,21 +722,23 @@ export async function createDirector(ctx) {
     });
     OV.block('endSub', { t, tIn: T.end + 0.8, html: `<div class="small" style="direction:${TX.dir};font-size:46px;color:rgba(255,255,255,0.85)">${TX.endSub}</div>`, y: 1060 });
     OV.block('endUrl', { t, tIn: T.end + 1.0, html: '<div class="url">beginmap.github.io/begin-nav</div>', y: 1150 });
-    OV.block('credits', { t, tIn: T.end + 1.3, html: `<div class="credits"><span class="lbl" style="direction:${TX.dir}">${TX.creditsLabel}</span>@david.ik. &nbsp;·&nbsp; @liamna01_</div>`, y: 1400 });
+    OV.block('credits', { t, tIn: T.end + 1.3, html: `<div class="credits"><span class="lbl" style="direction:${TX.dir}">${TX.creditsLabel}</span>@david.ik. &nbsp;·&nbsp; @liamna01_</div>`, y: 1370 });
+    OV.block('idea', { t, tIn: T.end + 1.55, html: `<div class="credits" style="font-size:42px"><span class="lbl" style="direction:${TX.dir}">${TX.ideaLabel}</span>@amitbiton24</div>`, y: 1560 });
     F().uFade.value = 1 - ease.inQuad(remap(t, T.total - 0.9, T.total));
   }
 
   // ---- cue sheet for the sound design (same clock as the visuals) ----------------
-  const pressT = wt('chips', S.chipPress);
+  const pressT = S.chipPress == null ? T.chips + 2.3 : wt('chips', S.chipPress);
   const cues = {
+    edit: EDIT,
+    T,
     voAt: VO_AT,
     voDur: Object.fromEntries(Object.keys(vo.lines).map((k) => [k, vo.lines[k].dur])),
-    bell: wt('hook', 5),
+    bell: EDIT === 'full' ? wt('hook', 5) : null,
     hookSlam: wt('hook', -2) - 0.12,
-    whip1: 7.6,
-    mazeStarts: mazeRoutes.map((m, i) => 8.25 + i * 0.42),
-    mazeX: mazeRoutes.map((m, i) => 8.25 + i * 0.42 + 1.7),
-    mazeHead: wt('maze', S.maze) - 0.1,
+    whip1: T.maze - 0.4,
+    mazeStarts: T.reveal > T.maze ? mazeRoutes.map((m, i) => 8.25 + i * 0.42) : [],
+    mazeX: T.reveal > T.maze ? mazeRoutes.map((m, i) => 8.25 + i * 0.42 + 1.7) : [],
     pinFall: T.reveal,
     impact: T.reveal + 0.5,
     logoIn: wt('reveal', S.revealLogo) - 0.2,
@@ -741,15 +752,15 @@ export async function createDirector(ctx) {
     rise: T.route + 0.35,
     routeDraw: [T.route + 1.4, T.route + 4.5],
     pinArrive: T.route + 4.5 - 0.15 + 0.35,
-    startTap: wt('start', S.startTap) + 0.25,
-    startRoute: wt('start', S.startRoute),
+    startTap: hasStart ? wt('start', S.startTap) + 0.25 : null,
+    startRoute: hasStart ? wt('start', S.startRoute) : null,
     chips: S.chips.map((i) => wt('chips', i) - 0.05),
     chipPress: pressT,
     toiletRoute: pressT + 0.25,
     v3dIn: T.view3d,
     v3dTap: v3dTapT,
     cards: cards.map((c, i) => wt('view3d', S.v3dCards) - 0.1 + i * 0.13),
-    langs: S.langs.map((i) => wt('langs', i) - 0.12),
+    langs: T.tagline > T.langs ? S.langs.map((i) => wt('langs', i) - 0.12) : [],
     tagline: T.tagline,
     tag1: wt('tagline', S.tag1) - 0.08,
     tag2: wt('tagline', S.tag2) - 0.08,

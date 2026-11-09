@@ -6,7 +6,7 @@ Everything is generated from this repository: the 3D campus is built from the ap
 screenshots of the app, routes are computed on the app's walkability grid (`data/walk.json`),
 and the soundtrack (music + sound design) is synthesised from scratch.
 
-Finished videos: `out/begin-map-promo-he.mp4`, `out/begin-map-promo-ru.mp4`.
+Finished videos: `out/begin-map-promo-{he,ru}.mp4` (74 s) and `out/begin-map-promo-{he,ru}-30.mp4` (30 s).
 
 ## Story
 
@@ -24,7 +24,26 @@ Finished videos: `out/begin-map-promo-he.mp4`, `out/begin-map-promo-ru.mp4`.
 | 60–70 s | Golden hour crane shot, tagline, QR code + link |
 | 70–74 s | End card with the app creators |
 
-## Rebuild
+## Render on your own PC (fast, uses the graphics card)
+
+Needs only [Node.js](https://nodejs.org) 18+. In a terminal (PowerShell on Windows):
+
+```bash
+git clone -b claude/3d-motion-graphics-video-f1p5g4 https://github.com/BeginMap/begin-nav
+cd begin-nav/promo
+npm install
+npx playwright install chromium
+npm run make:he       # -> out/begin-map-promo-he.mp4   (74 s, Hebrew)
+npm run make:ru       # -> out/begin-map-promo-ru.mp4   (74 s, Russian)
+npm run make:he30     # -> out/begin-map-promo-he-30.mp4 (30 s)
+npm run make:ru30     # -> out/begin-map-promo-ru-30.mp4 (30 s)
+```
+
+The first lines of the log print the WebGL renderer; it should name your GPU (e.g. NVIDIA GeForce RTX 5080).
+If it says SwiftShader, add `--headed`: `node tools/make.js --lang he --gpu --headed`.
+Voice, music and timings are already in `generated/`, so no Python is needed for rendering.
+
+## Rebuild everything from scratch
 
 Requirements: Node 18+, Python 3.11+, ffmpeg, Playwright with Chromium (software WebGL is fine).
 

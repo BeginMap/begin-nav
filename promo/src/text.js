@@ -20,12 +20,14 @@ export const TEXT = {
     ctaSub: 'בחינם · מכל טלפון',
     qrTitle: 'סרקו ונסו',
     creditsLabel: 'יוצרי האפליקציה',
+    ideaLabel: 'רעיון',
     endSub: 'הדרך שלכם בבית הספר בגין',
     // word indices in the VO lines that visuals lock onto
     sync: {
       maze: 3, revealLogo: 2, revealSub: 4, search: [0, 4, 5], startTap: 4, startRoute: 7, startHead: 8,
       chips: [0, 1, 3], chipPress: 6, v3dTap: 4, v3dCards: 7, langs: [0, 1, 2], tag1: 2, tag2: 4, ctaSub: 2,
     },
+    sync30: { revealLogo: 2, revealSub: 3, search: [0, 2, null], chips: [0, 1, 2], chipPress: null, v3dTap: 1, v3dCards: 3, tag1: 0, tag2: 2, ctaSub: null },
     capMerge: [['בגין', 'מאפ', 'Begin Map']],
     capReplace: {},
   },
@@ -50,11 +52,13 @@ export const TEXT = {
     ctaSub: 'Бесплатно · с любого телефона',
     qrTitle: 'Наведите камеру',
     creditsLabel: 'Создатели приложения',
+    ideaLabel: 'Идея',
     endSub: 'Ваш путь по школе Бегин',
     sync: {
       maze: 3, revealLogo: 1, revealSub: 3, search: [0, 3, 5], startTap: 3, startRoute: 7, startHead: 8,
       chips: [0, 1, 4], chipPress: 6, v3dTap: 3, v3dCards: 6, langs: [1, 2, 4], tag1: 2, tag2: 4, ctaSub: 2,
     },
+    sync30: { revealLogo: 1, revealSub: 2, search: [0, 2, null], chips: [0, 1, 2], chipPress: null, v3dTap: 2, v3dCards: 4, tag1: 0, tag2: 2, ctaSub: null },
     capMerge: [['Бегин', 'Мэп', 'Begin Map']],
     capReplace: { 'три-дэ': '3D' },
   },
@@ -70,9 +74,18 @@ export const PHOTOS = [
 ];
 
 // Scene starts (s) and VO cue times — shared by every language so the music fits all.
+// A scene with zero length is skipped (the 30-second cut drops maze, start, languages and the CTA).
 export const T = {
   hook: 0, maze: 8, reveal: 14, search: 20, route: 26, start: 32, chips: 40, view3d: 48, langs: 56, tagline: 60, cta: 64.6, end: 70, total: 74,
 };
 export const VO_AT = {
   hook: 0.7, maze: 8.3, reveal: 15.2, search: 20.6, route: 26.6, start: 32.4, chips: 40.3, view3d: 48.4, langs: 56.3, tagline: 60.4, cta: 65.0,
+};
+
+export const EDITS = {
+  full: { T, VO_AT },
+  30: {
+    T: { hook: 0, maze: 4, reveal: 4, search: 8, route: 12.5, start: 17.5, chips: 17.5, view3d: 21, langs: 23.5, tagline: 23.5, cta: 27, end: 27, total: 30 },
+    VO_AT: { hook: 0.4, reveal: 5.0, search: 8.4, route: 12.9, chips: 17.8, view3d: 21.2, tagline: 23.8, cta: 27.2 },
+  },
 };

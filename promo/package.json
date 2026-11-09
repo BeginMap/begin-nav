@@ -3,8 +3,11 @@
   "version": "1.0.0",
   "description": "3D motion-graphics promo video for Begin Map, rendered frame-by-frame with three.js",
   "scripts": {
-    "render:he": "node tools/render.js he build/frames_he 1 30 0 74 2",
-    "render:ru": "node tools/render.js ru build/frames_ru 1 30 0 74 2"
+    "make:he": "node tools/make.js --lang he --gpu",
+    "make:ru": "node tools/make.js --lang ru --gpu",
+    "make:he30": "node tools/make.js --lang he --edit 30 --gpu",
+    "make:ru30": "node tools/make.js --lang ru --edit 30 --gpu",
+    "make:all": "node tools/make.js --lang he --gpu && node tools/make.js --lang ru --gpu && node tools/make.js --lang he --edit 30 --gpu && node tools/make.js --lang ru --edit 30 --gpu"
   },
   "license": "MIT",
   "dependencies": {
@@ -12,5 +15,9 @@
     "opentype.js": "^2.0.0",
     "three": "^0.187.0"
   },
-  "private": true
+  "private": true,
+  "devDependencies": {
+    "playwright": "^1.55.0",
+    "ffmpeg-static": "^5.2.0"
+  }
 }

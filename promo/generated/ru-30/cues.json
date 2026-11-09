@@ -1,0 +1,93 @@
+{
+ "edit": "30",
+ "T": {
+  "hook": 0,
+  "maze": 4,
+  "reveal": 4,
+  "search": 8,
+  "route": 12.5,
+  "start": 17.5,
+  "chips": 17.5,
+  "view3d": 21,
+  "langs": 23.5,
+  "tagline": 23.5,
+  "cta": 27,
+  "end": 27,
+  "total": 30
+ },
+ "voAt": {
+  "hook": 0.4,
+  "reveal": 5,
+  "search": 8.4,
+  "route": 12.9,
+  "chips": 17.8,
+  "view3d": 21.2,
+  "tagline": 23.8,
+  "cta": 27.2
+ },
+ "voDur": {
+  "hook": 2.364,
+  "reveal": 2.153,
+  "search": 2.179,
+  "route": 1.894,
+  "chips": 2.493,
+  "view3d": 2.228,
+  "tagline": 2.161,
+  "cta": 2.65
+ },
+ "bell": null,
+ "hookSlam": 1.6309999999999998,
+ "whip1": 3.6,
+ "mazeStarts": [],
+ "mazeX": [],
+ "pinFall": 4,
+ "impact": 4.5,
+ "logoIn": 6.036,
+ "revealSub": 6.522,
+ "phoneIn": 8,
+ "tapSearch": 8.42,
+ "typing": [
+  8.74,
+  8.810857142857143,
+  8.881714285714287,
+  8.95257142857143,
+  9.023428571428573,
+  9.094285714285716,
+  9.165142857142857
+ ],
+ "pick": 9.536000000000001,
+ "dive": 11.9,
+ "flash": 12.5,
+ "rise": 12.85,
+ "routeDraw": [
+  13.9,
+  17
+ ],
+ "pinArrive": 17.200000000000003,
+ "startTap": null,
+ "startRoute": null,
+ "chips": [
+  17.75,
+  18.616,
+  19.368
+ ],
+ "chipPress": 19.8,
+ "toiletRoute": 20.05,
+ "v3dIn": 21,
+ "v3dTap": 21.531,
+ "cards": [
+  22.06,
+  22.189999999999998,
+  22.32,
+  22.45,
+  22.58,
+  22.709999999999997
+ ],
+ "langs": [],
+ "tagline": 23.5,
+ "tag1": 23.720000000000002,
+ "tag2": 24.713,
+ "cta": 27,
+ "end": 27,
+ "total": 30
+}

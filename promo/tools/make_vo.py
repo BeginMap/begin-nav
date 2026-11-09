@@ -15,7 +15,7 @@ import edge_tts
 import numpy as np
 
 HERE = Path(__file__).resolve().parent
-SCRIPT = json.loads((HERE.parent / "vo" / "script.json").read_text(encoding="utf-8"))
+SCRIPT = json.loads((HERE.parent / "vo" / os.environ.get("VO_SCRIPT", "script.json")).read_text(encoding="utf-8"))
 SR = 48000
 
 

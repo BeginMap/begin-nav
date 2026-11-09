@@ -9,6 +9,8 @@ import { createDirector } from './director.js';
 const W = 1080, H = 1920;
 const params = new URLSearchParams(location.search);
 const lang = params.get('lang') || 'he';
+const edit = params.get('edit') === '30' ? '30' : 'full';
+const genDir = edit === 'full' ? lang : `${lang}-${edit}`;
 
 const canvas = document.getElementById('gl');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, preserveDrawingBuffer: true, powerPreference: 'high-performance' });
@@ -42,7 +44,7 @@ const ready = (async () => {
     json('../assets/screens/manifest.json'),
     json('../../data/rooms.json'),
     json('../assets/routes.json'),
-    json(`../build/vo/${lang}/vo.json`),
+    json(`../generated/${genDir}/vo.json`),
   ]);
   const skyEnv = makeSkyEnv(renderer);
   const campus = await buildCampus(renderer, { lang, rooms, skyEnv });
@@ -53,6 +55,7 @@ const ready = (async () => {
   const director = await createDirector({
     scene, camera, world, post, campus, envMap, lang, screens, homes, vo, rooms, routesJson,
     captions: params.get('captions') !== '0',
+    edit,
   });
   await document.fonts.ready;
   // warm-up render so shaders compile before the first captured frame
