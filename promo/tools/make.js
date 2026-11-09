@@ -55,7 +55,8 @@ async function worker(w, base) {
   const browser = await chromium.launch({ headless: !headed, args: launchArgs });
   const page = await browser.newPage({ viewport: { width: 1080, height: 1920 }, deviceScaleFactor: scale });
   page.on('pageerror', (e) => console.log(`[w${w}] page error:`, e.message));
-  await page.goto(`${base}/promo/src/index.html?lang=${lang}&edit=${edit}`);
+  const q = flag('fast') ? '' : gpu ? '&q=high' : '';
+  await page.goto(`${base}/promo/src/index.html?lang=${lang}&edit=${edit}${q}`);
   await page.evaluate(() => window.__ready);
   if (w === 0) {
     const gl = await page.evaluate(() => {

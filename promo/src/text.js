@@ -20,7 +20,7 @@ export const TEXT = {
     ctaSub: 'בחינם · מכל טלפון',
     qrTitle: 'סרקו ונסו',
     creditsLabel: 'יוצרי האפליקציה',
-    ideaLabel: 'רעיון',
+    ideaLabel: 'הרעיון לסרטון',
     endSub: 'הדרך שלכם בבית הספר בגין',
     // word indices in the VO lines that visuals lock onto
     sync: {
@@ -52,7 +52,7 @@ export const TEXT = {
     ctaSub: 'Бесплатно · с любого телефона',
     qrTitle: 'Наведите камеру',
     creditsLabel: 'Создатели приложения',
-    ideaLabel: 'Идея',
+    ideaLabel: 'Идея для видео',
     endSub: 'Ваш путь по школе Бегин',
     sync: {
       maze: 3, revealLogo: 1, revealSub: 3, search: [0, 3, 5], startTap: 3, startRoute: 7, startHead: 8,

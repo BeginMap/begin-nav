@@ -244,6 +244,7 @@ export function scrim(id, o) {
   });
   e.style.background = o.background;
   e.style.opacity = o.opacity;
+  e.style.mixBlendMode = o.blend || 'normal';
 }
 
 /** Arbitrary HTML block with simple fade/slide; for end card + url. */

@@ -42,7 +42,12 @@ export function graded(material, opts = {}) {
   const nightTint = opts.nightTint || 'vec3(0.10, 0.15, 0.30)';
   material.onBeforeCompile = (shader) => {
     Object.assign(shader.uniforms, G, opts.uniforms || {});
-    shader.vertexShader = VERT_DECL + shader.vertexShader.replace('#include <project_vertex>', '#include <project_vertex>\n' + VERT_BODY);
+    let vs = VERT_DECL + (opts.vertex ? 'uniform vec2 uRevealCenter; uniform float uRevealRadius; uniform float uRing;\n' : '') + shader.vertexShader;
+    if (opts.vertex) {
+      vs = vs.replace('#include <beginnormal_vertex>', opts.vertex.normal || '#include <beginnormal_vertex>');
+      vs = vs.replace('#include <begin_vertex>', opts.vertex.position || '#include <begin_vertex>');
+    }
+    shader.vertexShader = vs.replace('#include <project_vertex>', '#include <project_vertex>\n' + VERT_BODY);
     shader.fragmentShader = FRAG_DECL + extraDecl + shader.fragmentShader.replace(
       '#include <opaque_fragment>',
       `#include <opaque_fragment>
@@ -63,6 +68,6 @@ export function graded(material, opts = {}) {
       }`
     );
   };
-  material.customProgramCacheKey = () => 'graded:' + (opts.key || '') + glow + (opts.detail || 0);
+  material.customProgramCacheKey = () => 'graded:' + (opts.key || '') + glow + (opts.detail || 0) + (opts.vertex ? 'v' : '');
   return material;
 }

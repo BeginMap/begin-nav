@@ -205,8 +205,31 @@ export async function buildCampus(renderer, { lang = 'he', rooms = [], skyEnv = 
   G.uDetail.value = detail;
 
   // --- ground: atlas over the site, desert sand beyond ---------------------------
-  const groundMat = graded(new THREE.MeshStandardMaterial({ map: atlas, roughness: 0.92, metalness: 0 }), { key: 'ground', detail: 0.55 });
-  const ground = new THREE.Mesh(new THREE.PlaneGeometry(2000 * MPP, 1500 * MPP), groundMat);
+  // the ground can ripple: a travelling wave from the pin impact (uRevealRadius / uRing)
+  const WAVE = `
+    vec2 wxz = vec2(position.x, -position.y);
+    vec2 dv = wxz - uRevealCenter;
+    float dR = max(length(dv), 0.001);
+    float x = (dR - uRevealRadius) / 6.0;
+    float amp = uRing * 2.4 / (1.0 + dR / 70.0);
+    float wv = amp * (exp(-x * x) - 0.35 * exp(-(x + 1.6) * (x + 1.6)));
+    float dwdr = amp * (-2.0 * x * exp(-x * x) + 0.7 * (x + 1.6) * exp(-(x + 1.6) * (x + 1.6))) / 6.0;
+  `;
+  const groundMat = graded(new THREE.MeshStandardMaterial({ map: atlas, roughness: 0.92, metalness: 0 }), {
+    key: 'ground', detail: 0.55,
+    vertex: {
+      normal: `${WAVE}
+        vec2 gr = dwdr * dv / dR;
+        vec3 nW = normalize(vec3(-gr.x, 1.0, -gr.y));
+        vec3 objectNormal = vec3(nW.x, -nW.z, nW.y);
+        #ifdef USE_TANGENT
+          vec3 objectTangent = vec3( tangent.xyz );
+        #endif`,
+      position: `vec3 transformed = vec3(position);
+        transformed.z += wv;`,
+    },
+  });
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(2000 * MPP, 1500 * MPP, 432, 324), groundMat);
   ground.rotation.x = -Math.PI / 2;
   ground.receiveShadow = true;
   root.add(ground);
@@ -334,5 +357,5 @@ export async function buildCampus(renderer, { lang = 'he', rooms = [], skyEnv = 
     lampGlows.push(glow);
   }
 
-  return { root, buildings, props, lampGlows, atlas, groundMat };
+  return { root, buildings, props, lampGlows, atlas, groundMat, edgeMat };
 }

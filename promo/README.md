@@ -39,6 +39,9 @@ npm run make:he30     # -> out/begin-map-promo-he-30.mp4 (30 s)
 npm run make:ru30     # -> out/begin-map-promo-ru-30.mp4 (30 s)
 ```
 
+With `--gpu` the renderer switches to high quality (`q=high`): 8-sample motion blur, ground-truth ambient
+occlusion (GTAO) and 4K shadow maps — expect a few minutes per cut instead of under one. Add `--fast` to skip it.
+
 The first lines of the log print the WebGL renderer; it should name your GPU (e.g. NVIDIA GeForce RTX 5080).
 If it says SwiftShader, add `--headed`: `node tools/make.js --lang he --gpu --headed`.
 Voice, music and timings are already in `generated/`, so no Python is needed for rendering.

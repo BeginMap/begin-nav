@@ -26,7 +26,10 @@ renderer.toneMappingExposure = 1.0;
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(38, W / H, 0.1, 4000);
 const world = makeWorld(scene);
-const post = makeComposer(renderer, scene, camera, W, H, parseInt(params.get('msaa') ?? '4', 10));
+const HIGH = params.get('q') === 'high';
+const MB = parseInt(params.get('mb') ?? (HIGH ? '8' : '1'), 10);
+const post = makeComposer(renderer, scene, camera, W, H, parseInt(params.get('msaa') ?? '4', 10), { ao: HIGH || params.get('ao') === '1' });
+if (HIGH) world.sun.shadow.mapSize.set(4096, 4096);
 
 const pmrem = new THREE.PMREMGenerator(renderer);
 const envMap = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
@@ -56,6 +59,7 @@ const ready = (async () => {
     scene, camera, world, post, campus, envMap, lang, screens, homes, vo, rooms, routesJson,
     captions: params.get('captions') !== '0',
     edit,
+    pixelRatio: renderer.getPixelRatio(),
   });
   await document.fonts.ready;
   // warm-up render so shaders compile before the first captured frame
@@ -70,7 +74,19 @@ window.cues = async () => (await ready).director.cues;
 
 window.seek = async (t) => {
   const { director } = await ready;
-  director.update(t);
-  post.composer.render();
+  if (MB > 1) {
+    // sub-frames across a 180-degree shutter (half a frame at 30 fps), then present
+    const shutter = 0.5 / 30;
+    post.blur.begin();
+    for (let i = 0; i < MB; i++) {
+      director.update(t + (i / (MB - 1) - 0.5) * shutter);
+      post.blur.add(1 / MB);
+    }
+    post.blur.end(t);
+    director.update(t); // DOM overlay state exactly at t
+  } else {
+    director.update(t);
+    post.composer.render();
+  }
   return true;
 };

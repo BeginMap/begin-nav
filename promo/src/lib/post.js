@@ -5,6 +5,8 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { BokehPass } from 'three/addons/postprocessing/BokehPass.js';
+import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
+import { FullScreenQuad } from 'three/addons/postprocessing/Pass.js';
 
 // Final look: subtle vignette, chromatic fringe at the edges, film grain and a
 // "flash" uniform used for hard cuts / impacts.
@@ -48,7 +50,7 @@ const FinishShader = {
     }`,
 };
 
-export function makeComposer(renderer, scene, camera, W, H, samples = 4) {
+export function makeComposer(renderer, scene, camera, W, H, samples = 4, opts = {}) {
   const pr = renderer.getPixelRatio();
   const rt = new THREE.WebGLRenderTarget(W * pr, H * pr, { type: THREE.HalfFloatType, samples });
   const composer = new EffectComposer(renderer, rt);
@@ -56,6 +58,27 @@ export function makeComposer(renderer, scene, camera, W, H, samples = 4) {
   composer.setSize(W, H);
   const renderPass = new RenderPass(scene, camera);
   composer.addPass(renderPass);
+  let gtao = null;
+  if (opts.ao) {
+    gtao = new GTAOPass(scene, camera, W * pr, H * pr);
+    gtao.updateGtaoMaterial({ radius: 2.2, distanceExponent: 1.5, thickness: 1.0, scale: 1.0, samples: 16 });
+    gtao.updatePdMaterial({ lumaPhi: 10, depthPhi: 2, normalPhi: 3, radius: 6, rings: 2, samples: 12 });
+    gtao.blendIntensity = 0.85;
+    // keep sprites, particles, glows, the sky and other non-depth-writing things out of the AO pass
+    gtao._overrideVisibility = function () {
+      const cache = this._visibilityCache;
+      this.scene.traverse((o) => {
+        if (!o.visible) return;
+        const m = o.material;
+        const soft = m && !Array.isArray(m) && (m.transparent || m.depthWrite === false);
+        if (o.isPoints || o.isLine || o.isLine2 || o.isSprite || soft) {
+          o.visible = false;
+          cache.push(o);
+        }
+      });
+    };
+    composer.addPass(gtao);
+  }
   const bokeh = new BokehPass(scene, camera, { focus: 3.4, aperture: 0.02, maxblur: 0.009 });
   bokeh.enabled = false;
   composer.addPass(bokeh);
@@ -66,5 +89,47 @@ export function makeComposer(renderer, scene, camera, W, H, samples = 4) {
   const finish = new ShaderPass(FinishShader);
   finish.uniforms.uRes.value.set(W * pr, H * pr);
   composer.addPass(finish);
-  return { composer, bloom, finish, renderPass, bokeh };
+
+  // Motion blur: average several sub-frames rendered across a 180-degree shutter.
+  const accumRT = new THREE.WebGLRenderTarget(W * pr, H * pr, { type: THREE.HalfFloatType, depthBuffer: false });
+  const addQuad = new FullScreenQuad(new THREE.ShaderMaterial({
+    uniforms: { tSrc: { value: null }, uW: { value: 1 } },
+    vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }`,
+    fragmentShader: `uniform sampler2D tSrc; uniform float uW; varying vec2 vUv; void main(){ gl_FragColor = vec4(texture2D(tSrc, vUv).rgb * uW, 1.0); }`,
+    blending: THREE.AdditiveBlending, depthTest: false, depthWrite: false, transparent: true,
+  }));
+  const presentQuad = new FullScreenQuad(new THREE.ShaderMaterial({
+    uniforms: { tSrc: { value: accumRT.texture }, uTime: { value: 0 }, uGrain: { value: 0.026 }, uRes: { value: new THREE.Vector2(W * pr, H * pr) } },
+    vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }`,
+    fragmentShader: `uniform sampler2D tSrc; uniform float uTime, uGrain; uniform vec2 uRes; varying vec2 vUv;
+      float hash(vec2 p){ p = fract(p*vec2(123.34, 456.21)); p += dot(p, p+45.32); return fract(p.x*p.y); }
+      void main(){ vec3 c = texture2D(tSrc, vUv).rgb; c += (hash(vUv * uRes + fract(uTime * 7.13) * 100.0) - 0.5) * uGrain; gl_FragColor = vec4(c, 1.0); }`,
+    depthTest: false, depthWrite: false,
+  }));
+  const blur = {
+    begin() {
+      composer.renderToScreen = false;
+      finish.uniforms.uGrain.value = 0;
+      renderer.setRenderTarget(accumRT);
+      renderer.setClearColor(0x000000, 1);
+      renderer.clear(true, false, false);
+    },
+    add(weight) {
+      composer.render();
+      addQuad.material.uniforms.tSrc.value = composer.readBuffer.texture;
+      addQuad.material.uniforms.uW.value = weight;
+      renderer.setRenderTarget(accumRT);
+      const ac = renderer.autoClear;
+      renderer.autoClear = false; // keep what the previous sub-frames accumulated
+      addQuad.render(renderer);
+      renderer.autoClear = ac;
+    },
+    end(t) {
+      presentQuad.material.uniforms.uTime.value = t;
+      renderer.setRenderTarget(null);
+      presentQuad.render(renderer);
+    },
+  };
+
+  return { composer, bloom, finish, renderPass, bokeh, gtao, blur };
 }

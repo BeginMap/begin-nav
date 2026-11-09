@@ -7,6 +7,7 @@ import { makeRoute, makeHereDot } from './lib/route.js';
 import { makePhone } from './lib/phone.js';
 import { photoCard, qrCard, labelCard } from './lib/cards.js';
 import { makeLogo3D } from './lib/logo3d.js';
+import { makeMotes, makeBurst, makeTrail, makeClouds, makeHoloGrid, makePillar } from './lib/fx.js';
 import * as OV from './lib/overlay.js';
 import { TEXT, PHOTOS, EDITS } from './text.js';
 
@@ -141,6 +142,68 @@ export async function createDirector(ctx) {
   add(logo.group, camera);
   const endPin = add(makePin(envMap), camera);
 
+  // ---- wow FX ---------------------------------------------------------------------
+  const PX = 1920 * (ctx.pixelRatio || 1);
+  const fxCfg = (pts, a, b, size, extra = {}) => {
+    const u = pts.material.uniforms;
+    u.uColorA.value.set(a);
+    u.uColorB.value.set(b);
+    u.uSize.value = size;
+    u.uPx.value = PX;
+    for (const [k, v] of Object.entries(extra)) u[k].value = v;
+    return pts;
+  };
+  const motesNight = fxCfg(add(makeMotes(900, [170, 24, 140], 3)), '#ffcf7a', '#9fd0ff', 0.55);
+  motesNight.position.set(COURT.x, 0.5, COURT.z - 5);
+  const motesGold = fxCfg(add(makeMotes(600, [220, 40, 200], 5)), '#ffd08a', '#fff4dc', 0.24);
+  motesGold.position.set(-5, 0, 15);
+  const burstImpact = fxCfg(add(makeBurst(800, 7)), '#9fd2ff', '#ffffff', 0.55, { uSpeed: 40, uLife: 2.6, uGrav: 7 });
+  const burstArrive = fxCfg(add(makeBurst(420, 17)), '#ffb35a', '#fff1c4', 0.4, { uSpeed: 16, uLife: 1.7, uGrav: 9 });
+  const trailD = fxCfg(add(makeTrail(routeD.curve, 900, 9)), '#ff9a3c', '#ffe7a8', 0.34);
+  const trailC = fxCfg(add(makeTrail(routeC.curve, 700, 19)), '#ff9a3c', '#ffe7a8', 0.34);
+  const trailT = fxCfg(add(makeTrail(routeT.curve, 420, 29)), '#4fc3ff', '#e6f6ff', 0.34, { uLen: 0.3 });
+  const clouds = add(makeClouds());
+  const holo = add(makeHoloGrid(300, 260));
+  const pillar = add(makePillar('#ffb35a', 70, 1.3));
+  const endMotes = fxCfg(add(makeMotes(260, [9, 9, 5], 23), camera), '#8fc2ff', '#ffffff', 0.05);
+  endMotes.position.set(0, -4.5, -9.5);
+  const sweep = add(new THREE.PointLight('#ffffff', 0, 7, 2), camera);
+  const moon = add(glowSprite('#cfdcff', 70));
+  const moonDisc = add(glowSprite('#ffffff', 14));
+  moon.position.set(-150, 150, -520);
+  moonDisc.position.copy(moon.position);
+  moon.renderOrder = moonDisc.renderOrder = -5;
+  // time warp: slow motion right after the pin impact, catching up by the next scene
+  const TI0 = T.reveal + 0.5;
+  const warpTab = (() => {
+    const span = T.search - TI0, n = 400, out = [0];
+    let acc = 0;
+    for (let i = 1; i <= n; i++) {
+      const a = (i / n) * span;
+      const r = 0.28 + 0.72 * ease.inOutCubic(clamp((a - 0.35) / 1.1));
+      acc += r * (span / n);
+      out.push(acc);
+    }
+    return out.map((v) => (v * span) / acc);
+  })();
+  const warp = (t) => {
+    if (t <= TI0) return t;
+    const span = T.search - TI0;
+    const f = clamp((t - TI0) / span) * (warpTab.length - 1);
+    const i = Math.floor(f), fr = f - i;
+    return TI0 + (warpTab[i] + (warpTab[Math.min(i + 1, warpTab.length - 1)] - warpTab[i]) * fr);
+  };
+  const revealRadius = (after) => (after > 0 ? ease.outCubic(clamp(after / 1.9)) * 280 + Math.max(0, after - 1.5) * 1500 : -1000);
+  // when the shock-wave reaches each building (for the bounce)
+  campus.buildings.children.forEach((b) => {
+    const c = W2(b.userData.cx, b.userData.cy);
+    const d = Math.hypot(c.x - COURT.x, c.z - COURT.z);
+    let lo = 0, hi = 6;
+    for (let i = 0; i < 30; i++) { const m = (lo + hi) / 2; if (revealRadius(m) < d) lo = m; else hi = m; }
+    b.userData.waveAt = hi;
+    b.userData.waveAmp = 1.6 / (1 + d / 60);
+  });
+
   for (const o of [phone.group, ...langPhones.map((p) => p.group), ...langCards, ...cards, qr, logo.group, endPin]) {
     o.traverse((c) => { c.castShadow = false; c.receiveShadow = false; });
   }
@@ -206,6 +269,14 @@ export async function createDirector(ctx) {
     else p.show(c.tex);
   };
   const topScrim = (t, a, b) => OV.scrim('topScrim', { background: 'linear-gradient(to bottom, rgba(5,10,28,0.62) 0%, rgba(5,10,28,0.35) 16%, rgba(5,10,28,0) 32%)', opacity: envelope(t, a, b, 0.5, 0.5) });
+  const showPillar = (t, t0, op = 1) => {
+    pillar.visible = true;
+    pillar.position.copy(DOL).add(V(0, ROOF, 0));
+    const g = ease.outCubic(clamp((t - t0) / 0.9));
+    pillar.scale.set(1, Math.max(0.001, g), 1);
+    pillar.material.uniforms.uOpacity.value = op * (0.6 + 0.4 * Math.sin(t * 3));
+    pillar.material.uniforms.uTime.value = t;
+  };
   const caps = (line, t, y = 1585) => OV.captions('cap-' + line, { t, at: VO_AT[line], words: capWords[line], dir: TX.dir, y });
 
   // screen sequences
@@ -258,6 +329,10 @@ export async function createDirector(ctx) {
     phone.uniforms.uSheen.value = 0.3;
     post.bokeh.enabled = false;
     nightNow = 0;
+    campus.edgeMat.color.set('#7d7568');
+    campus.edgeMat.opacity = 0.45;
+    campus.buildings.children.forEach((b) => { b.position.y = 0; });
+    sweep.intensity = 0;
 
     if (t < T.maze) sceneHook(t);
     else if (t < T.reveal) sceneMaze(t);
@@ -294,8 +369,14 @@ export async function createDirector(ctx) {
     const look = V(-6, lerp(2.0, 4.2, k), lerp(20, -10, k));
     // opening drone dive into the courtyard
     const dv = ease.inOutCubic(clamp(t / (2.6 * kH)));
-    pos.lerp(V(-40, 95, 110), 1 - dv);
+    pos.lerp(V(-80, 330, 300), 1 - dv);
     look.lerp(V(-6, 0, 10), 1 - dv);
+    clouds.visible = t < 2.9 * kH;
+    clouds.children.forEach((c, i) => { c.material.opacity = 0.85 * (1 - remap(t, 2.2 * kH, 2.8 * kH)); c.material.color.set('#6f86b8'); c.material.rotation = Math.sin(i) * 0.4; });
+    moon.visible = moonDisc.visible = true;
+    motesNight.visible = true;
+    motesNight.material.uniforms.uTime.value = t;
+    motesNight.material.uniforms.uOpacity.value = clamp((t - 1.2 * kH) / 1.0);
     pos.x += wobble(t, 1, 0.3) * dv;
     pos.y += wobble(t, 2, 0.12) * dv;
     look.x += wobble(t, 4, 0.6) * dv;
@@ -338,6 +419,9 @@ export async function createDirector(ctx) {
     const pos = orbit(C, ang, lerp(62, 52, k) - push * 20, lerp(112, 96, k) - push * 30);
     setCam(pos, C.clone().add(V(0, 0, push * 8)), 38);
     const fadeAll = 1 - ease.inOutQuad(remap(t, 13.1, 13.7));
+    motesNight.visible = moon.visible = moonDisc.visible = true;
+    motesNight.material.uniforms.uTime.value = t;
+    motesNight.material.uniforms.uOpacity.value = 0.7 * fadeAll;
     mazeRoutes.forEach(({ r, x, cut }, i) => {
       const a = 8.25 + i * 0.42;
       const p = ease.inOutQuad(remap(t, a, a + 1.7)) * cut;
@@ -366,7 +450,8 @@ export async function createDirector(ctx) {
   function sceneReveal(t) {
     const TI = T.reveal + 0.5;
     const fall = clamp((t - T.reveal) / 0.5);
-    const after = t - TI;
+    const tw = warp(t);
+    const after = tw - TI;
     // pin
     const squash = after > 0 ? 1 - 0.28 * Math.exp(-after * 7) * Math.cos(after * 26) : 1 + fall * 0.12;
     const bob = after > 0.9 ? Math.sin((t - TI) * 1.8) * 0.25 * clamp((after - 0.9) / 0.5) : 0;
@@ -377,13 +462,27 @@ export async function createDirector(ctx) {
     // grade
     setNight(1 - (after > 0 ? ease.inOutQuad(clamp((after - 1.3) / 0.9)) : 0));
     G.uRevealCenter.value.set(COURT.x, COURT.z);
-    G.uRevealRadius.value = after > 0 ? ease.outCubic(clamp(after / 1.9)) * 280 + Math.max(0, after - 1.5) * 1500 : -1000;
+    G.uRevealRadius.value = revealRadius(after);
     G.uRing.value = after > 0 ? 1 - clamp(after / 2.2) : 0;
     const skyN = 1 - ease.inOutQuad(clamp((after - 0.15) / 1.5));
     nightNow = skyN;
     world.set({ night: skyN, fogNear: lerp(20, 160, 1 - skyN), fogFar: lerp(260, 900, 1 - skyN) });
     post.bloom.strength = lerp(0.35, 0.65, skyN);
-    // impact fx
+    // impact fx: sparks, buildings bounce as the wave passes, moon + motes fade with the night
+    if (after > 0) {
+      burstImpact.visible = true;
+      burstImpact.material.uniforms.uOrigin.value.copy(COURT).add(V(0, 1.2, 0));
+      burstImpact.material.uniforms.uTime.value = after;
+      campus.buildings.children.forEach((b) => {
+        const a = after - b.userData.waveAt;
+        if (a > 0) b.position.y = b.userData.waveAmp * Math.exp(-a * 3.2) * Math.sin(a * 13);
+      });
+    }
+    moon.visible = moonDisc.visible = skyN > 0.02;
+    moon.material.opacity = moonDisc.material.opacity = skyN;
+    motesNight.visible = skyN > 0.02;
+    motesNight.material.uniforms.uTime.value = t;
+    motesNight.material.uniforms.uOpacity.value = 0.6 * skyN;
     if (after > 0) {
       ringAt(impactRing, COURT, lerp(1, 85, ease.outExpo(clamp(after / 1.4))), 1 - clamp(after / 1.4), 0.05);
       F().uFlash.value = 0.6 * (1 - clamp(after / 0.35));
@@ -404,8 +503,8 @@ export async function createDirector(ctx) {
       pos = orbit(COURT, ang, lerp(22, 66, u), lerp(2.0, 40, u));
       look = COURT.clone().add(V(0, lerp(3, 0, u), lerp(0, -8, u)));
     }
-    const shake = after > 0 ? 0.7 * Math.exp(-after * 5) : 0;
-    pos.add(V(Math.sin(t * 61) * shake, Math.sin(t * 47 + 1) * shake * 0.6, 0));
+    const shake = after > 0 ? 0.8 * Math.exp(-after * 4) : 0;
+    pos.add(V(Math.sin(tw * 61) * shake, Math.sin(tw * 47 + 1) * shake * 0.6, 0));
     setCam(pos, look, 40);
     // 3D wordmark (camera space)
     const tl = wt('reveal', S.revealLogo) - 0.2;
@@ -468,6 +567,20 @@ export async function createDirector(ctx) {
     const dStart = T.route + 1.4, dEnd = T.route + 4.5;
     const u = ease.inOutCubic(remap(t, dStart, dEnd));
     routeD.set(u, { time: t });
+    // digital twin materialising: holographic grid sweep + glowing building edges
+    const hk = envelope(t, riseT0 - 0.1, riseT0 + 2.8, 0.25, 0.9);
+    if (hk > 0) {
+      holo.visible = true;
+      holo.material.uniforms.uCenter.value.set(ENT.x, ENT.z);
+      holo.material.uniforms.uR.value = Math.max(0, t - riseT0) * 98;
+      holo.material.uniforms.uOpacity.value = hk;
+      campus.edgeMat.color.setRGB(lerp(0.49, 1.2, hk), lerp(0.46, 3.2, hk), lerp(0.41, 4.0, hk));
+      campus.edgeMat.opacity = lerp(0.45, 1, hk);
+    }
+    trailD.visible = u > 0.001;
+    trailD.material.uniforms.uHead.value = u;
+    trailD.material.uniforms.uTime.value = t;
+    trailD.material.uniforms.uOpacity.value = 1 - remap(t, dEnd, dEnd + 1.2);
     // start marker
     entDot.visible = true;
     entDot.position.copy(ENT);
@@ -499,6 +612,12 @@ export async function createDirector(ctx) {
       if (after > 0) ringAt(arriveRing, DOL.clone().add(V(0, ROOF, 0)), lerp(1, 16, ease.outCubic(clamp(after / 1.0))), 1 - clamp(after / 1.0), 0.1);
       destTag.position.copy(DOL).add(V(0, ROOF + 6.6, 0));
       showSprite(destTag, spring(t, pinT + 0.4, { freq: 2.2, damp: 0.5 }));
+      if (after > 0) {
+        burstArrive.visible = true;
+        burstArrive.material.uniforms.uOrigin.value.copy(DOL).add(V(0, ROOF + 0.6, 0));
+        burstArrive.material.uniforms.uTime.value = after;
+        showPillar(t, pinT + 0.35, 1);
+      }
     }
     OV.routeCard('rc', { t, tIn: dStart + 0.1, tOut: T.start - 0.35, title: TX.room, meta: TX.routeMeta(Math.round(110 * u)), dir: TX.dir, y: 1310 });
   }
@@ -534,7 +653,13 @@ export async function createDirector(ctx) {
       hereTag.position.copy(HERE).add(V(0, 4.2, 0));
       showSprite(hereTag, spring(t, tapT + 0.25, { freq: 2.2, damp: 0.5 }));
     }
-    routeC.set(ease.inOutCubic(remap(t, rT, rT + 1.9)), { time: t });
+    const uc = ease.inOutCubic(remap(t, rT, rT + 1.9));
+    routeC.set(uc, { time: t });
+    trailC.visible = uc > 0.001;
+    trailC.material.uniforms.uHead.value = uc;
+    trailC.material.uniforms.uTime.value = t;
+    trailC.material.uniforms.uOpacity.value = 1 - remap(t, rT + 1.9, rT + 3.0);
+    showPillar(t, T.start - 5, 1 - remap(t, T.chips - 1.0, T.chips));
     topScrim(t, wt('start', S.startHead) - 0.4, T.chips - 0.2);
     OV.headline('start', { t, tIn: wt('start', S.startHead) - 0.15, tOut: T.chips - 0.4, text: TX.start, y: 200, size: 122 * HS, dir: TX.dir, style: 'rise', accent: '#5b9bff' });
   }
@@ -574,7 +699,11 @@ export async function createDirector(ctx) {
         bm.material.opacity = 0.55 * dim * clamp(s);
       });
     });
-    routeT.set(ease.inOutCubic(remap(t, pressT + 0.25, pressT + 1.5)), { time: t });
+    const ut = ease.inOutCubic(remap(t, pressT + 0.25, pressT + 1.5));
+    routeT.set(ut, { time: t });
+    trailT.visible = ut > 0.001;
+    trailT.material.uniforms.uHead.value = ut;
+    trailT.material.uniforms.uTime.value = t;
     OV.chips('chips', { t, tIn: T.chips, tOut: T.view3d - 0.4, y: 250, dir: TX.dir, items: chipItems.map((c, i) => ({ ...c, at: wt('chips', S.chips[i]) - 0.05 })), pressIdx: 0, pressAt: pressT, dimOthers: pressT + 0.1 });
   }
 
@@ -663,6 +792,11 @@ export async function createDirector(ctx) {
     pos.applyAxisAngle(V(0, 1, 0), u2 * 0.25);
     const look = DOL.clone().add(V(0, 4, 0)).lerp(V(-6, 0, 14), u);
     setCam(pos, look, 40);
+    motesGold.visible = true;
+    motesGold.material.uniforms.uTime.value = t;
+    motesGold.material.uniforms.uOpacity.value = 0.85 * warm;
+    showPillar(t, T.tagline - 5, 0.9);
+    OV.scrim('leak', { background: 'radial-gradient(ellipse at 88% 6%, rgba(255,176,90,0.55), rgba(255,120,40,0.18) 35%, rgba(255,120,40,0) 62%)', opacity: envelope(t, T.tagline, T.end, 1.2, 0.6) * (0.75 + 0.25 * Math.sin(t * 1.3)), blend: 'screen' });
     const [l1, l2] = TX.tagline.split('|');
     topScrim(t, T.tagline + 0.2, T.end - 0.2);
     OV.kicker('tagLogo', { t, tIn: wt('tagline', 0) - 0.05, tOut: T.cta - 0.3, html: '<span class="logo-word" style="font-size:96px">BEGIN MAP</span>', y: 190, size: 96, dir: 'ltr', color: '#fff' });
@@ -702,6 +836,15 @@ export async function createDirector(ctx) {
     setCam(V(0, 0, 10), V(0, 0, 0), 38);
     const k = t - T.end;
     const sp = spring(t, T.end + 0.05, { freq: 1.4, damp: 0.55 });
+    endMotes.visible = true;
+    endMotes.material.uniforms.uTime.value = t;
+    endMotes.material.uniforms.uOpacity.value = clamp((t - T.end) / 0.8);
+    const sw = remap(t, T.end + 0.9, T.end + 2.0);
+    if (sw > 0 && sw < 1) {
+      sweep.visible = true;
+      sweep.intensity = 60 * Math.sin(sw * Math.PI);
+      sweep.position.set(lerp(-3.2, 3.2, ease.inOutQuad(sw)), 0.4, -5.2);
+    }
     endPin.visible = true;
     endPin.position.set(0, 0.42 + (1 - sp) * -1.5 + Math.sin(k * 1.6) * 0.04, -7);
     endPin.scale.setScalar(0.36 * Math.max(0.001, sp));
