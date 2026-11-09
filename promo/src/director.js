@@ -842,7 +842,7 @@ export async function createDirector(ctx) {
     const sw = remap(t, T.end + 0.9, T.end + 2.0);
     if (sw > 0 && sw < 1) {
       sweep.visible = true;
-      sweep.intensity = 60 * Math.sin(sw * Math.PI);
+      sweep.intensity = 28 * Math.sin(sw * Math.PI);
       sweep.position.set(lerp(-3.2, 3.2, ease.inOutQuad(sw)), 0.4, -5.2);
     }
     endPin.visible = true;
