@@ -82,7 +82,27 @@ async function worker(w, base) {
   return n;
 }
 
+// The story cut's 3D people come from the three.js model library (Mixamo characters, not
+// redistributed here): download them once into build/cache.
+async function ensureModels() {
+  const dir = path.join(PROMO, 'build', 'cache');
+  fs.mkdirSync(dir, { recursive: true });
+  for (const f of ['Xbot.glb', 'Michelle.glb']) {
+    const p = path.join(dir, f);
+    if (fs.existsSync(p) && fs.statSync(p).size > 100000) continue;
+    try {
+      console.log('Downloading 3D model', f, '...');
+      const r = await fetch('https://raw.githubusercontent.com/mrdoob/three.js/r170/examples/models/gltf/' + f);
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      fs.writeFileSync(p, Buffer.from(await r.arrayBuffer()));
+    } catch (e) {
+      console.log('  could not download', f, '-', e.message, '(the page will try again by itself)');
+    }
+  }
+}
+
 (async () => {
+  if (edit === 'story') await ensureModels();
   fs.mkdirSync(framesDir, { recursive: true });
   fs.mkdirSync(path.dirname(out), { recursive: true });
   const srv = await serve();
@@ -96,7 +116,7 @@ async function worker(w, base) {
   const r = spawnSync(ffmpeg, [
     '-v', 'error', '-y', '-framerate', String(fps), '-start_number', String(Math.round(t0s * fps)), '-i', path.join(framesDir, '%05d.jpg'),
     '-ss', String(t0s), '-i', path.join(gen, 'mix.flac'),
-    '-c:v', 'libx264', '-preset', 'slow', '-crf', '19', '-tune', 'film', '-pix_fmt', 'yuv420p', '-profile:v', 'high', '-level', '4.2',
+    '-c:v', 'libx264', '-preset', 'slow', '-crf', '17', '-tune', 'film', '-pix_fmt', 'yuv420p', '-profile:v', 'high', '-level', '4.2',
     '-c:a', 'aac', '-b:a', '256k', '-ar', '48000', '-movflags', '+faststart', '-shortest', out,
   ], { stdio: 'inherit' });
   if (r.status !== 0) process.exit(r.status || 1);

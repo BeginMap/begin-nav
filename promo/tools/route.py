@@ -161,6 +161,28 @@ for rid, r in rooms.items():
             best = (rid, rt)
 out["courtToilet"] = {"to": best[0], **best[1]}
 
+# story cut: the student stands in the middle of the inner courtyard
+HERE = (1000, 1060)
+def nearest(cat, rx=None):
+    best = None
+    for rid, r in rooms.items():
+        if r["category"] == cat and (rx is None or rx.search(rid)):
+            try:
+                rt = route(HERE, room_xy(rid))
+            except ValueError:
+                continue
+            if best is None or rt["meters"] < best[1]["meters"]:
+                best = (rid, rt)
+    return {"to": best[0], **best[1]}
+import re as _re
+out["story"] = {
+    "here": list(HERE),
+    "dolphin": route(HERE, room_xy("dolphin")),
+    "toilet": nearest("toilets"),
+    "office": nearest("office", _re.compile("secretary")),
+    "shelter": nearest("shelter"),
+}
+
 # "lost" wandering paths for the maze scene: random corridor-to-corridor walks
 import random
 random.seed(4)

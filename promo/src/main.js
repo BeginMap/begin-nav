@@ -9,7 +9,7 @@ import { createDirector } from './director.js';
 const W = 1080, H = 1920;
 const params = new URLSearchParams(location.search);
 const lang = params.get('lang') || 'he';
-const edit = ['30', 'silk'].includes(params.get('edit')) ? params.get('edit') : 'full';
+const edit = ['30', 'silk', 'story'].includes(params.get('edit')) ? params.get('edit') : 'full';
 const genDir = edit === 'full' ? lang : `${lang}-${edit}`;
 
 const canvas = document.getElementById('gl');
@@ -55,7 +55,8 @@ const ready = (async () => {
   const screens = await loadScreens(lang, manifest[lang]);
   const homes = {};
   for (const l of ['he', 'ru', 'en']) homes[l] = (await loadScreens(l, ['00_home']))['00_home'];
-  const make = edit === 'silk' ? (await import('./director_silk.js')).createSilkDirector : createDirector;
+  const make = edit === 'silk' ? (await import('./director_silk.js')).createSilkDirector
+    : edit === 'story' ? (await import('./director_story.js')).createStoryDirector : createDirector;
   const director = await make({
     scene, camera, world, post, campus, envMap, lang, screens, homes, vo, rooms, routesJson,
     captions: params.get('captions') !== '0',

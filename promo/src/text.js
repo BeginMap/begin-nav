@@ -89,6 +89,11 @@ export const EDITS = {
     T: { hook: 0, maze: 6, reveal: 11, search: 17, route: 22.5, start: 28.5, chips: 34.5, view3d: 41, langs: 48, tagline: 51, cta: 55.5, end: 59, total: 62.5 },
     VO_AT: { hook: 0.6, maze: 6.1, reveal: 12.8, search: 17.3, route: 22.8, start: 28.8, chips: 34.8, view3d: 41.3, langs: 48.2, tagline: 51.3, cta: 55.8 },
   },
+  // story cut: clouds -> a student on the first day -> the app on the phone -> AR route
+  story: {
+    T: { intro: 0, lost: 7.2, app: 12.1, search: 16.5, route: 21.9, start: 27.3, chips: 33.3, view3d: 39.7, langs: 46.5, tagline: 49.7, cta: 54.5, end: 58.6, total: 62.6 },
+    VO_AT: { hook: 2.4, maze: 7.4, reveal: 12.35, search: 16.7, route: 22.1, start: 27.5, chips: 33.5, view3d: 39.9, langs: 46.7, tagline: 49.95, cta: 54.7 },
+  },
   30: {
     T: { hook: 0, maze: 4, reveal: 4, search: 8, route: 12.5, start: 17.5, chips: 17.5, view3d: 21, langs: 23.5, tagline: 23.5, cta: 27, end: 27, total: 30 },
     VO_AT: { hook: 0.4, reveal: 5.0, search: 8.4, route: 12.9, chips: 17.8, view3d: 21.05, tagline: 23.85, cta: 27.2 },

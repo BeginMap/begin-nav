@@ -538,7 +538,7 @@ def build_sfx():
 # ================================================================ VO + MIX
 def load_vo():
     vo = np.zeros(N)
-    VTAG = LANG if EDIT in ("full", "silk") else TAG
+    VTAG = LANG if EDIT in ("full", "silk", "story") else TAG
     meta = json.loads((ROOT / "build" / "vo" / VTAG / "vo.json").read_text())
     for k, at in c_vo_at().items():
         if k not in meta["lines"]:
@@ -738,9 +738,186 @@ def build_music_silk():
     return music
 
 
+def build_music_story():
+    """Story cut: airy pad above the clouds, quiet pulse on the way down, minor tension while
+    she is lost (+ vertigo swell), drop when the app opens (12.5 s), groove through the features,
+    build into the golden walk (half-time chords), CTA, final chord on the end card."""
+    drums = np.zeros((N, 2)); bass = np.zeros((N, 2)); pads = np.zeros((N, 2)); arps = np.zeros((N, 2)); fx = np.zeros((N, 2))
+    kicks = []
+    C = {
+        "Dm": (38, [57, 62, 64, 65, 69]), "Bb": (46, [58, 62, 65, 70, 72]), "F": (41, [57, 60, 65, 67, 69]),
+        "C": (48, [55, 60, 64, 67, 74]), "Gm": (43, [55, 58, 62, 67, 69]), "Asus": (45, [57, 62, 64, 69, 71]),
+    }
+    c = CUES
+    T = c["T"]
+    # above the clouds: wide, bright pad + shimmer
+    place(pads, pad([50, 57, 62, 64, 69, 76], 7.6, cutoff=2600, attack=1.6, release=0.6, detune=0.14), 0.0, 0.42)
+    for i in range(9):
+        place(arps, fm_bell([81, 84, 88, 86, 79][i % 5], 2.4, 2.0, 1.1), 0.4 + i * 0.75, 0.05, pan=np.sin(i * 1.3) * 0.7)
+    # quiet pulse on the way down
+    for st in range(int((T["lost"] - 2.5) / (BEAT / 2))):
+        tb = 2.5 + st * BEAT / 2
+        place(arps, filt(pluck([62, 69, 64, 69][st % 4] + 12, 0.22, 2200), "high", 400), tb, 0.06 + 0.04 * min(1, st / 8))
+    k = 0
+    while c["hookSlam"] + k * BEAT < T["lost"]:
+        place(drums, tick(1900 if k % 2 == 0 else 1500), c["hookSlam"] + k * BEAT, 0.28)
+        k += 1
+    # lost: minor tension
+    lost = [(T["lost"], "Dm"), (T["lost"] + 1.3, "Bb"), (c["vertigo"][0], "Gm"), (c["vertigo"][0] + 1.3, "Asus")]
+    for i, (at, ch) in enumerate(lost):
+        dur = (lost[i + 1][0] if i + 1 < len(lost) else bar(6)) - at
+        b, up = C[ch]
+        place(pads, pad(up[:4], dur, cutoff=1300, attack=0.35, release=0.3), at, 0.3)
+        for st in range(int(dur / (BEAT / 2))):
+            place(bass, sub(b, BEAT / 2 * 0.9), at + st * BEAT / 2, 0.42)
+        for st in range(int(dur / (BEAT / 4))):
+            place(arps, filt(pluck(up[[0, 2, 1, 3][st % 4]] + 12, 0.25, 2400), "high", 300), at + st * BEAT / 4, 0.1)
+    place(fx, riser(1.6), bar(6) - 1.6, 0.55)
+    for i in range(16):
+        place(drums, snare(), bar(6) - 0.9 + i * (0.85 / 16), 0.12 + 0.4 * i / 16)
+    # groove from the app opening to the languages
+    seq = ["Bb", "F", "C", "Dm"]
+    prog = [(bar(6 + i), seq[i % 4], "full") for i in range(18)]  # 12.5 .. 48.5
+    prog += [(bar(24), "Gm", "build")]  # 48.5 .. 50.5
+    prog += [(bar(25), "F", "half"), (bar(26), "Bb", "half"), (bar(27), "Dm", "full"), (bar(28), "C", "full")]
+    end = c["end"]
+    for i, (at, ch, mode) in enumerate(prog):
+        nxt = prog[i + 1][0] if i + 1 < len(prog) else end
+        dur = nxt - at
+        if dur <= 0:
+            continue
+        b, up = C[ch]
+        place(pads, pad(up, dur, cutoff=2500 if mode != "build" else 1700, attack=0.25 if mode != "build" else 0.6, release=0.5), at, 0.36)
+        if mode != "build":
+            for st in range(int(round(dur / (BEAT / 2)))):
+                place(bass, sub(b if st % 8 != 7 else b + 7, BEAT / 2 * 0.92), at + st * BEAT / 2, 0.5)
+        pattern = [0, 2, 4, 2, 1, 3, 4, 3]
+        for st in range(int(round(dur / (BEAT / 4)))):
+            place(arps, pluck(up[pattern[st % 8]] + 12, 0.3, 3600 if mode == "full" else 2800), at + st * BEAT / 4, (0.1 if mode == "full" else 0.13) * (1.2 if st % 4 == 0 else 0.8), pan=np.sin(st * 0.7) * 0.5)
+        for bt in range(int(round(dur / BEAT))):
+            tb = at + bt * BEAT
+            # keep the beat light under the phone close-ups (VO clarity), full on the wide shots
+            if mode == "full" or (mode == "half" and bt % 4 == 0):
+                place(drums, kick(), tb, 0.68); kicks.append(tb)
+            if mode == "full" and bt % 2 == 1:
+                place(drums, clap(), tb, 0.45)
+            if mode == "half" and bt % 4 == 2:
+                place(drums, clap(), tb, 0.55)
+            if mode in ("full", "build"):
+                place(drums, hat(), tb + BEAT / 2, 0.18, pan=0.3)
+    for i in range(20):
+        place(drums, snare(), bar(25) - 1.3 + i * (1.3 / 20), 0.12 + 0.45 * i / 20)
+    place(fx, riser(1.8), bar(25) - 1.8, 0.5)
+    place(pads, pad([41, 53, 57, 60, 65, 69, 72], 4.0, cutoff=3000, attack=0.02, release=1.8), end, 0.55)
+    for i, m in enumerate([65, 69, 72, 77]):
+        place(arps, fm_bell(m, 2.5), end + i * 0.09, 0.2, pan=(i - 1.5) * 0.3)
+    place(bass, sub(29, 2.8), end, 0.7)
+    pump = np.ones(N)
+    for kt in kicks:
+        i = int(kt * SR); j = min(N, i + int(0.32 * SR))
+        pump[i:j] = np.minimum(pump[i:j], 1 - 0.5 * np.exp(-np.arange(j - i) / SR * 9))
+    for bus in (bass, pads, arps):
+        bus *= pump[:, None]
+    drums = drums * 0.72
+    music = drums + bass * 0.3 + pads * 0.85 + arps * 0.75 + fx * 0.6
+    music += reverb(pads * 0.4 + arps * 0.55 + drums * 0.08, IR_HALL) * 0.55
+    lows = filt(music, "low", 90); highs = filt(music, "high", 9000)
+    music = music - 0.45 * lows - 0.5 * highs
+    t = np.arange(N) / SR
+    music *= np.minimum(1, t / 0.8)[:, None]
+    music *= np.clip((TOTAL - t) / 1.2, 0, 1)[:, None] ** 1.5
+    return music
+
+
+def wind(dur, f0=400, f1=1800):
+    n = tt(dur)
+    w = sweep_noise(dur, f0, f1, q=0.7, curve="lin")
+    return w * (0.6 + 0.4 * np.sin(2 * np.pi * 0.7 * n) ** 2)
+
+
+def build_sfx_story():
+    fx = np.zeros((N, 2))
+    c = CUES
+    # wind above the clouds, a big rush through them, the dive below
+    place(fx, wind(3.2, 300, 900) * np.sin(np.pi * tt(3.2) / 3.2), 0.0, 0.35)
+    place(fx, whoosh(1.9, 300, 4500, 0.55), c["cloudIn"] - 0.5, 0.8)
+    place(fx, whoosh(2.4, 3500, 220, 0.3), c["cloudOut"] - 0.2, 0.55)
+    place(fx, whoosh(1.2, 2200, 300, 0.4), c["land"] - 1.0, 0.35)
+    place(fx, reverb(school_bell(), IR_HALL) * 0.6 + stereo(school_bell()) * 0.5, c["bell"] - 0.35, 0.5)
+    place(fx, impact(0.6), c["hookSlam"], 0.5)
+    for i, at in enumerate(c["tags"]):
+        place(fx, filt(pop(1300 + i * 40, 700), "high", 300), at, 0.12, pan=np.sin(i * 1.7) * 0.6)
+    for i, at in enumerate(c["qs"]):
+        place(fx, pop(900, 380), at, 0.16, pan=np.sin(i * 2.3) * 0.6)
+    # vertigo: a slow reverse swell with a falling drone
+    a, b = c["vertigo"]
+    d = b - a
+    tv = tt(d)
+    drone = np.sin(2 * np.pi * np.cumsum(110 * (1 - 0.35 * tv / d)) / SR) * (tv / d) ** 2 * 0.3
+    place(fx, drone + sweep_noise(d, 200, 2500) * (tv / d) ** 2 * 0.25, a, 0.6)
+    # phone
+    place(fx, whoosh(0.6, 300, 1600, 0.5), c["raise"], 0.25)
+    place(fx, fm_bell(84, 0.8, 2.0, 1.2), c["screenOn"], 0.14)
+    place(fx, sparkle(1.0), c["logoIn"], 0.6)
+    place(fx, whoosh(0.6, 400, 3500, 0.55), c["revealSub"] - 0.2, 0.22)
+    place(fx, tap_click(), c["tapSearch"], 0.5)
+    for at in c["typing"]:
+        place(fx, key_click(), at, 0.35, pan=RNG.uniform(-0.2, 0.2))
+    place(fx, tap_click(), c["pick"], 0.5)
+    place(fx, whoosh(0.4, 800, 5000, 0.5), c["pick"] + 0.15, 0.25)
+    # crane up + the route from the gate
+    place(fx, whoosh(1.4, 200, 2600, 0.5), c["crane"], 0.5)
+    a, b = c["routeDraw"]
+    place(fx, sweep_noise(b - a, 1500, 6000) * np.sin(np.pi * tt(b - a) / (b - a)) * 0.25, a, 0.35)
+    place(fx, whoosh(0.4, 3000, 400, 0.3), c["pinArrive"] - 0.4, 0.4)
+    place(fx, pop(500, 160) * 1.2, c["pinArrive"], 0.5)
+    for i, m in enumerate([77, 81, 84]):
+        place(fx, fm_bell(m, 1.4, 3.0, 2.0), c["pinArrive"] + 0.05 + i * 0.08, 0.16, pan=(i - 1) * 0.35)
+    # back down, tap "you are here", the route leaves the phone
+    place(fx, whoosh(1.4, 2600, 250, 0.45), c["T"]["start"] + 0.1, 0.4)
+    place(fx, tap_click(), c["startTap"], 0.55)
+    place(fx, pop(700, 300), c["startTap"] + 0.05, 0.35)
+    for i, m in enumerate([72, 79]):
+        place(fx, fm_bell(m, 1.0, 2.0, 1.4), c["startTap"] + 0.1 + i * 0.1, 0.1)
+    t = tt(0.5)
+    zap = np.sin(2 * np.pi * np.cumsum(600 + 2600 * (t / 0.5) ** 1.5) / SR) * np.sin(np.pi * t / 0.5) * 0.2
+    place(fx, zap + whoosh(0.5, 800, 6000, 0.7) * 0.5, c["launch"], 0.55)
+    place(fx, sparkle(1.2), c["arDraw"][0] - 0.1, 0.5)
+    a, b = c["arDraw"]
+    place(fx, sweep_noise(b - a, 1200, 5000) * np.sin(np.pi * tt(b - a) / (b - a)) * 0.25, a, 0.4)
+    # chips
+    place(fx, whoosh(1.3, 300, 2200, 0.5), c["T"]["chips"], 0.35)
+    for k, at in enumerate(c["chips"]):
+        for i in range(4):
+            place(fx, pop(700 + k * 180 + i * 40, 380 + k * 90), at + i * 0.06, 0.2, pan=RNG.uniform(-0.6, 0.6))
+    place(fx, tap_click(), c["chipPress"], 0.6)
+    place(fx, sweep_noise(1.4, 2000, 7000) * np.sin(np.pi * tt(1.4) / 1.4) * 0.25, c["toiletRoute"], 0.3)
+    # 3D + photos
+    place(fx, whoosh(1.2, 2600, 250, 0.5), c["v3dIn"] - 0.1, 0.45, pan=0.3)
+    place(fx, tap_click(), c["v3dTap"], 0.55)
+    place(fx, whoosh(0.5, 600, 4000, 0.5), c["v3dTap"] + 0.15, 0.3)
+    for i, at in enumerate(c["cards"]):
+        place(fx, whoosh(0.45, 700 + i * 120, 4500, 0.4), at - 0.1, 0.2, pan=np.sin(i * 1.3) * 0.7)
+    for i, at in enumerate(c["langs"]):
+        place(fx, whoosh(0.45, 300, 2500, 0.6), at - 0.2, 0.28, pan=[-0.5, 0, 0.5][i])
+        place(fx, fm_bell([72, 76, 79][i], 1.0, 2.0, 1.5), at + 0.1, 0.13)
+    # the walk: soft steps in time with her feet
+    st = c["walk"] + 0.35
+    while st < c["end"] - 0.3:
+        stp = filt(noise(int(0.06 * SR)) * np.exp(-np.arange(int(0.06 * SR)) / SR * 70), "bp", (300, 2400))
+        place(fx, stp, st, 0.05 * min(1, (st - c["walk"]) / 1.0) * max(0, 1 - (st - c["cta"]) / 2.0))
+        st += 0.483
+    place(fx, impact(0.5), c["tag2"], 0.35)
+    place(fx, whoosh(0.8, 250, 2500, 0.6), c["cta"] - 0.2, 0.45)
+    place(fx, impact(1.0), c["end"], 0.7)
+    place(fx, sparkle(1.2), c["end"] + 0.2, 0.5)
+    fx = filt(fx, "low", 10000)
+    return fx
+
+
 def main():
-    music = build_music30() if EDIT == "30" else build_music_silk() if EDIT == "silk" else build_music()
-    sfx = build_sfx()
+    music = build_music30() if EDIT == "30" else build_music_silk() if EDIT == "silk" else build_music_story() if EDIT == "story" else build_music()
+    sfx = build_sfx_story() if EDIT == "story" else build_sfx()
     vo, _ = load_vo()
     duck = duck_curve(vo)
     meter = pyln.Meter(SR)

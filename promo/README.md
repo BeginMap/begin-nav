@@ -24,10 +24,18 @@ Finished videos: `out/begin-map-promo-{he,ru}.mp4` (74 s) and `out/begin-map-pro
 | 60–70 s | Golden hour crane shot, tagline, QR code + link |
 | 70–74 s | End card with the app creators |
 
-## Two looks
+## Cuts
 
-- **Liquid light** (`--edit silk`, `npm run make:all`) — the main cut: glowing silk light in the dark,
-  the school as a floating diorama, UI popping out of the phone as 3D glass, 62 s, Hebrew.
+- **Story** (`--edit story`, `npm run make:all`) — the main cut, 62.6 s, Hebrew. Through the clouds and down
+  into the courtyard, where a student stands lost on the first day (bell already rang, everything looks the
+  same: a dolly-zoom). She opens Begin Map: first-person shots of the real app (search, route), a crane up to
+  the route from the gate, then "start from where you are" — the route leaves the phone and lies down on the
+  courtyard as a glowing AR path; toilets / office / safe room, 3D view + real photos, three languages, and she
+  walks the path in golden light. Tagline, QR, end card with the creators.
+  The student is the three.js library's Mixamo character "Michelle", animated by the "X Bot" idle/walk clips
+  (retargeted at runtime) with IK hands on the phone. The models are downloaded on the first render into
+  `build/cache/` (not committed).
+- **Liquid light** (`--edit silk`, `npm run make:silk`) — glowing silk light in the dark, the school as a floating diorama.
 - **City** (default edit, `npm run make:city`) — the original fly-through of the 3D campus, 74 s (+ 30 s cut).
 
 ## Render on your own PC (fast, uses the graphics card)
@@ -39,7 +47,7 @@ git clone -b claude/3d-motion-graphics-video-f1p5g4 https://github.com/BeginMap/
 cd begin-nav/promo
 npm install
 npx playwright install chromium
-npm run make:all      # -> out/begin-map-promo-he-silk.mp4 (liquid light, Hebrew)
+npm run make:all      # -> out/begin-map-promo-he-story.mp4 (story cut, Hebrew)
 npm run make:city     # -> out/begin-map-promo-he.mp4      (city fly-through, Hebrew)
 ```
 
