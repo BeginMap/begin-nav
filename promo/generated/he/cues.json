@@ -29,20 +29,20 @@
   "cta": 65
  },
  "voDur": {
-  "hook": 4.2,
-  "maze": 4.666,
-  "reveal": 4.278,
-  "search": 4.903,
-  "route": 4.873,
-  "start": 5.687,
-  "chips": 6.746,
-  "view3d": 6.368,
-  "langs": 2.837,
-  "tagline": 3.619,
-  "cta": 3.334
+  "hook": 4.707,
+  "maze": 4.498,
+  "reveal": 3.827,
+  "search": 4.608,
+  "route": 4.856,
+  "start": 5.246,
+  "chips": 5.778,
+  "view3d": 6.265,
+  "langs": 2.738,
+  "tagline": 3.648,
+  "cta": 3.126
  },
- "bell": 2.8,
- "hookSlam": 3.38,
+ "bell": 2.88,
+ "hookSlam": 3.62,
  "whip1": 7.6,
  "mazeStarts": [
   8.25,
@@ -68,8 +68,8 @@
  ],
  "pinFall": 14,
  "impact": 14.5,
- "logoIn": 15.920000000000002,
- "revealSub": 17.13,
+ "logoIn": 15.72,
+ "revealSub": 16.83,
  "phoneIn": 20,
  "tapSearch": 20.42,
  "typing": [
@@ -89,24 +89,24 @@
   30.5
  ],
  "pinArrive": 30.700000000000003,
- "startTap": 33.91,
- "startRoute": 35.48,
+ "startTap": 34.15,
+ "startRoute": 35.42,
  "chips": [
   40.25,
-  41.45,
-  42.73
+  41.23,
+  42.13
  ],
- "chipPress": 44.78,
- "toiletRoute": 45.03,
+ "chipPress": 43.66,
+ "toiletRoute": 43.91,
  "v3dIn": 48,
- "v3dTap": 49.71,
+ "v3dTap": 49.83,
  "cards": [
-  51.279999999999994,
-  51.41,
-  51.53999999999999,
-  51.669999999999995,
-  51.8,
-  51.92999999999999
+  51.4,
+  51.53,
+  51.66,
+  51.79,
+  51.92,
+  52.05
  ],
  "langs": [
   56.18,
@@ -114,8 +114,8 @@
   57.88
  ],
  "tagline": 60,
- "tag1": 61.24,
- "tag2": 62.68,
+ "tag1": 61.36,
+ "tag2": 62.64,
  "cta": 64.6,
  "end": 70,
  "total": 74

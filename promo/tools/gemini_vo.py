@@ -22,6 +22,15 @@ HERE = Path(__file__).resolve().parent
 SR = 48000
 MODELS = os.environ.get("TTS_MODELS", "gemini-3.1-flash-tts-preview,gemini-3.8-flash-lite-tts,gemini-3.8-flash-tts").split(",")
 
+AD_STYLE = {
+    "he": "Read this Hebrew voice-over exactly like a top Israeli TV and radio commercial announcer (קריין פרסומות): "
+          "energetic, punchy, upbeat and confident, a big warm smile in the voice, strong emphasis on the key words, "
+          "dynamic rhythm and a fairly quick pace, like a premium product-launch ad. Natural Israeli Hebrew pronunciation. Text:",
+    "ru": "Read this Russian voice-over exactly like a top TV and radio commercial announcer: energetic, punchy, upbeat and "
+          "confident, a big warm smile in the voice, strong emphasis on the key words, dynamic rhythm and a fairly quick pace, "
+          "like a premium product-launch ad. Native Russian pronunciation. Text:",
+}
+
 STYLE = {
     "he": "Read this Hebrew voice-over like a smart, calm and confident narrator of a premium tech product film. "
           "Warm, clear, intelligent, modern; natural Israeli Hebrew pronunciation; not deep or gravelly, not over-acted; "
@@ -35,7 +44,7 @@ STYLE = {
 def tts(text, lang, voice, extra=""):
     key = os.environ.get("GEMINI_API_KEY", "")
     body = {
-        "contents": [{"parts": [{"text": f"{STYLE[lang]}{extra} {text}"}]}],
+        "contents": [{"parts": [{"text": f"{(AD_STYLE if os.environ.get('VO_STYLE') == 'ad' else STYLE)[lang]}{extra} {text}"}]}],
         "generationConfig": {
             "responseModalities": ["AUDIO"],
             "speechConfig": {"voiceConfig": {"prebuiltVoiceConfig": {"voiceName": voice}}},
