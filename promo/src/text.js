@@ -86,6 +86,6 @@ export const EDITS = {
   full: { T, VO_AT },
   30: {
     T: { hook: 0, maze: 4, reveal: 4, search: 8, route: 12.5, start: 17.5, chips: 17.5, view3d: 21, langs: 23.5, tagline: 23.5, cta: 27, end: 27, total: 30 },
-    VO_AT: { hook: 0.4, reveal: 5.0, search: 8.4, route: 12.9, chips: 17.8, view3d: 21.2, tagline: 23.8, cta: 27.2 },
+    VO_AT: { hook: 0.4, reveal: 5.0, search: 8.4, route: 12.9, chips: 17.8, view3d: 21.05, tagline: 23.85, cta: 27.2 },
   },
 };
