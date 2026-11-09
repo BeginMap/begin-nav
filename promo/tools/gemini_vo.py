@@ -20,7 +20,7 @@ import numpy as np
 
 HERE = Path(__file__).resolve().parent
 SR = 48000
-MODELS = ["gemini-2.5-pro-preview-tts", "gemini-2.5-flash-preview-tts"]
+MODELS = ["gemini-3.8-flash-tts", "gemini-2.5-pro-preview-tts", "gemini-2.5-flash-preview-tts"]
 
 STYLE = {
     "he": "Read this Hebrew voice-over like a smart, calm and confident narrator of a premium tech product film. "
@@ -123,13 +123,16 @@ def main():
     from faster_whisper import WhisperModel
     wm = WhisperModel("large-v3-turbo", device="auto", compute_type="int8")
     meta = {"voice": f"gemini:{voice}", "lines": {}}
-    for key, text in script[lang]["lines"].items():
-        pcm, rate, model = tts(text, lang, voice)
+    from concurrent.futures import ThreadPoolExecutor
+    items = list(script[lang]["lines"].items())
+    with ThreadPoolExecutor(max_workers=int(os.environ.get("TTS_PARALLEL", "4"))) as ex:
+        results = list(ex.map(lambda kv: tts(kv[1], lang, voice), items))
+    for (key, text), (pcm, rate, model) in zip(items, results):
         x = trim(resample(pcm, rate))
         write_wav(out / f"{key}.wav", x)
         words, hyp = align(wm, x, text, lang)
         meta["lines"][key] = {"text": text, "dur": round(len(x) / SR, 3), "words": words}
-        print(f"{key:8s} {len(x) / SR:5.2f}s [{model}] heard: {hyp}")
+        print(f"{key:8s} {len(x) / SR:5.2f}s [{model}] heard: {hyp}", flush=True)
     (out / "vo.json").write_text(json.dumps(meta, ensure_ascii=False, indent=1), encoding="utf-8")
     print("total", round(sum(v["dur"] for v in meta["lines"].values()), 2), "s")
 
