@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>GPS calibration</title>
+<link rel="stylesheet" href="../css/app.css">
+<link rel="stylesheet" href="editor.css">
+</head>
+<body>
+<div class="ed">
+  <aside class="side">
+    <h1>Калибровка GPS</h1>
+    <p class="hint">Нужно минимум 3 опорные точки, не на одной линии, лучше по краям территории и снаружи (под открытым небом GPS точнее). Для каждой: 1) встаньте в реальной точке, 2) нажмите «Взять GPS» (или введите координаты из Google Maps), 3) нажмите на ту же точку на плане. Затем «Скачать calibration.json».</p>
+    <div class="row">
+      <button id="btnGps">Взять GPS сейчас</button>
+      <button id="btnAdd" class="primary">Добавить точку</button>
+    </div>
+    <label>Широта (lat)<input id="lat" inputmode="decimal"></label>
+    <label>Долгота (lng)<input id="lng" inputmode="decimal"></label>
+    <label>Позиция на плане (нажмите на карту)<input id="xy" readonly placeholder="x, y"></label>
+    <div class="status" id="status" role="status"></div>
+    <ol id="list"></ol>
+    <div class="status" id="result"></div>
+    <div class="row"><button class="primary" id="btnDownload">Скачать calibration.json</button><button id="btnClear">Очистить</button></div>
+  </aside>
+  <div id="map"></div>
+</div>
+<script type="module" src="calibrate.js"></script>
+</body>
+</html>
