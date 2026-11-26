@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Проверка компаса</title>
+<style>
+  body { margin: 0; padding: 16px; background: #0b0b0c; color: #f2f2f2; font: 16px/1.45 system-ui, sans-serif; }
+  h1 { font-size: 20px; margin: 0 0 8px; }
+  p { margin: 0 0 12px; color: #c8c8c8; }
+  button { width: 100%; padding: 18px; font: 700 18px system-ui, sans-serif; border: 0; border-radius: 14px; background: #fff; color: #000; }
+  button:disabled { opacity: .5; }
+  pre { margin: 14px 0 0; padding: 12px; background: #17171a; border-radius: 12px; font: 13px/1.5 ui-monospace, Consolas, monospace; white-space: pre-wrap; word-break: break-word; }
+</style>
+</head>
+<body>
+<h1>Проверка компаса</h1>
+<p>Держите телефон в руке. Нажмите кнопку, подождите 6 секунд. Потом сделайте снимок экрана и пришлите его.</p>
+<button id="go">Проверить компас</button>
+<pre id="out"></pre>
+<script>
+(function () {
+  var out = document.getElementById("out"), btn = document.getElementById("go");
+  function log(k, v) { out.textContent += k + ": " + v + "\n"; }
+  function wait(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+  function mk() { return { abs: 0, rel: 0, last: null }; }
+  function listen(c) {
+    function h(e) {
+      if (e.type === "deviceorientationabsolute") c.abs++; else c.rel++;
+      c.last = e.type + " absolute=" + e.absolute + " alpha=" + (e.alpha == null ? "null" : Math.round(e.alpha))
+        + " beta=" + (e.beta == null ? "null" : Math.round(e.beta))
+        + (e.webkitCompassHeading != null ? " wkHeading=" + Math.round(e.webkitCompassHeading) : "");
+    }
+    window.addEventListener("deviceorientationabsolute", h);
+    window.addEventListener("deviceorientation", h);
+  }
+  function perms() {
+    if (!navigator.permissions || !navigator.permissions.query) return Promise.resolve("нет Permissions API");
+    return Promise.all(["accelerometer", "gyroscope", "magnetometer"].map(function (n) {
+      return navigator.permissions.query({ name: n }).then(function (s) { return n + "=" + s.state; }, function (e) { return n + "=ошибка " + e.name; });
+    })).then(function (a) { return a.join(", "); });
+  }
+  var D = window.DeviceOrientationEvent, c1 = mk();
+  log("браузер", navigator.userAgent);
+  log("https", window.isSecureContext);
+  log("в рамке (iframe)", window.top !== window.self);
+  log("событие ориентации", "ondeviceorientation" in window);
+  log("событие absolute", "ondeviceorientationabsolute" in window);
+  log("requestPermission", !!(D && typeof D.requestPermission === "function"));
+  log("AbsoluteOrientationSensor", "AbsoluteOrientationSensor" in window);
+  listen(c1);
+  perms().then(function (p) { log("разрешения до нажатия", p); });
+  btn.addEventListener("click", function () {
+    btn.disabled = true;
+    log("--- нажатие", "");
+    log("событий до нажатия", "absolute " + c1.abs + ", обычных " + c1.rel + (c1.last ? " | " + c1.last : ""));
+    var before = { abs: c1.abs, rel: c1.rel }, c2 = mk(), ask;
+    if (D && typeof D.requestPermission === "function") {
+      var t0 = Date.now();
+      try {
+        ask = D.requestPermission().then(
+          function (r) { log("ответ requestPermission", JSON.stringify(r) + " через " + (Date.now() - t0) + " мс"); },
+          function (e) { log("requestPermission ОШИБКА", e.name + ": " + e.message); });
+      } catch (e) { log("requestPermission ИСКЛЮЧЕНИЕ", e.name + ": " + e.message); ask = Promise.resolve(); }
+    } else { log("ответ requestPermission", "метода нет (разрешение не требуется)"); ask = Promise.resolve(); }
+    ask.then(function () { listen(c2); return wait(3000); }).then(function () {
+      log("старые слушатели после нажатия", "absolute " + (c1.abs - before.abs) + ", обычных " + (c1.rel - before.rel) + (c1.last ? " | " + c1.last : ""));
+      log("новые слушатели", "absolute " + c2.abs + ", обычных " + c2.rel + (c2.last ? " | " + c2.last : ""));
+      return perms();
+    }).then(function (p) {
+      log("разрешения после нажатия", p);
+      if (!("AbsoluteOrientationSensor" in window)) return;
+      return new Promise(function (res) {
+        var n = 0, s, done = false;
+        function fin(msg) { if (done) return; done = true; try { s && s.stop(); } catch (e) {} log("AbsoluteOrientationSensor", msg); res(); }
+        try {
+          s = new AbsoluteOrientationSensor({ frequency: 10 });
+          s.onerror = function (ev) { fin("ошибка " + ev.error.name + ": " + ev.error.message); };
+          s.onreading = function () { n++; };
+          s.start();
+          setTimeout(function () { fin("показаний за 2 с: " + n); }, 2000);
+        } catch (e) { fin("исключение " + e.name + ": " + e.message); }
+      });
+    }).then(function () { log("--- готово", "сделайте снимок экрана"); btn.disabled = false; });
+  });
+})();
+</script>
+</body>
+</html>

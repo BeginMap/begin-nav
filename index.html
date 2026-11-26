@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Begin Map – מצא כיתה בבגין</title>
+  <meta name="referrer" content="no-referrer">
+  <meta name="description" content="Begin High School, Eilat: find any room and get walking directions. מצאו כל חדר בבית הספר בגין באילת. Найдите любой кабинет в школе Begin.">
+  <link rel="canonical" href="https://beginmap.github.io/begin-nav/">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Begin Map">
+  <meta property="og:title" content="Begin Map – מצא כיתה בבגין">
+  <meta property="og:description" content="Begin High School, Eilat: find any room and get walking directions. מצאו כל חדר בבית הספר בגין באילת. Найдите любой кабинет в школе Begin.">
+  <meta property="og:url" content="https://beginmap.github.io/begin-nav/">
+  <meta property="og:image" content="https://beginmap.github.io/begin-nav/icons/og.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://beginmap.github.io/begin-nav/icons/og.jpg">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Begin Map","alternateName":["BeginMap","Begin Nav","בגין מאפ","מפת בגין","Бегин Мап"],"url":"https://beginmap.github.io/begin-nav/","description":"Begin High School, Eilat: find any room and get walking directions. מצאו כל חדר בבית הספר בגין באילת. Найдите любой кабинет в школе Begin.","applicationCategory":"TravelApplication","operatingSystem":"Any","inLanguage":["he","ru","en"],"isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"ILS"}}</script>
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/png" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="preload" as="image" href="public/maps/plan.jpg" fetchpriority="high">
+  <script>try{window.__early={};["config","levels","rooms","walk","calibration","photos","evacuation"].forEach(function(n){var p="data/"+n+".json";window.__early[p]=fetch(p,{cache:"no-cache"})})}catch(e){}</script>
+  <style>@font-face{font-family:"Rubik";font-style:italic;font-weight:800 900;font-display:swap;src:url(public/fonts/rubik-cyrillic-italic.woff2) format("woff2");unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}@font-face{font-family:"Rubik";font-style:italic;font-weight:800 900;font-display:swap;src:url(public/fonts/rubik-hebrew-italic.woff2) format("woff2");unicode-range:U+0307-0308,U+0590-05FF,U+200C-2010,U+20AA,U+25CC,U+FB1D-FB4F}@font-face{font-family:"Rubik";font-style:italic;font-weight:800 900;font-display:swap;src:url(public/fonts/rubik-latin-italic.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:"Rubik";font-style:normal;font-weight:500 900;font-display:swap;src:url(public/fonts/rubik-cyrillic.woff2) format("woff2");unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}@font-face{font-family:"Rubik";font-style:normal;font-weight:500 900;font-display:swap;src:url(public/fonts/rubik-hebrew.woff2) format("woff2");unicode-range:U+0307-0308,U+0590-05FF,U+200C-2010,U+20AA,U+25CC,U+FB1D-FB4F}@font-face{font-family:"Rubik";font-style:normal;font-weight:500 900;font-display:swap;src:url(public/fonts/rubik-latin.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}</style>
+  <link rel="modulepreload" href="src/app.js">
+  <link rel="modulepreload" href="src/data.js">
+  <link rel="modulepreload" href="src/routing.js">
+  <link rel="modulepreload" href="src/search.js">
+  <link rel="modulepreload" href="src/i18n.js">
+  <link rel="modulepreload" href="src/directions.js">
+  <link rel="modulepreload" href="src/positioning.js">
+  <link rel="modulepreload" href="src/gpsfilter.js">
+  <link rel="modulepreload" href="src/matching.js">
+  <link rel="modulepreload" href="src/heading.js">
+  <link rel="modulepreload" href="src/map.js">
+  <link rel="modulepreload" href="src/ui.js">
+  <link rel="modulepreload" href="src/extras.js">
+  <script>try{var l=localStorage.getItem("layout")||(innerWidth>=900?"desktop":"phone");document.documentElement.dataset.layout=l}catch(e){document.documentElement.dataset.layout=innerWidth>=900?"desktop":"phone"}</script>
+  <script>try{if(!/[?&]nointro/.test(location.search)&&!(window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches)){document.documentElement.classList.add("intro-pending");addEventListener("load",function(){if(!window.__introBoot)document.documentElement.classList.remove("intro-pending")})}}catch(e){}</script>
+  <link rel="stylesheet" href="css/app.css">
+  <link rel="stylesheet" href="css/extras.css">
+</head>
+<body>
+  <div class="intro" id="intro" role="presentation" hidden>
+    <canvas class="intro__cv" id="introCv" aria-hidden="true"></canvas>
+    <p class="intro__pick" aria-hidden="true">בחרו שפה · Выберите язык · Choose a language</p>
+    <ul class="intro__langs">
+      <li lang="he" dir="rtl" data-lang="he" role="button" tabindex="0"><span class="t">מצא כיתה</span><span class="l">עברית</span></li>
+      <li lang="ru" data-lang="ru" role="button" tabindex="0"><span class="t">Найти класс</span><span class="l">Русский</span></li>
+      <li lang="en" data-lang="en" role="button" tabindex="0"><span class="t">Find a room</span><span class="l">English</span></li>
+    </ul>
+    <p class="intro__credit" dir="ltr" lang="en"><span><svg class="dc" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"/></svg>@david.ik.</span><span><svg class="dc" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"/></svg>@liamna01_</span></p>
+  </div>
+  <a class="skip" href="#q" id="skip">Search</a>
+  <div class="app" id="app" data-sheet="peek">
+    <aside class="sheet" id="sheet" data-state="peek" aria-labelledby="appTitle">
+      <button class="sheet__grab" id="grab" type="button" aria-expanded="false" aria-controls="sheetBody">
+        <span class="sheet__bar" aria-hidden="true"></span>
+      </button>
+      <header class="sheet__head">
+        <h1 class="sheet__title" id="appTitle">Begin Map</h1>
+        <div class="row">
+          <button class="btn btn--ghost btn--small btn--device" id="btnDevice" type="button"></button>
+          <button class="btn btn--ghost btn--small" id="btnLang" type="button"></button>
+        </div>
+      </header>
+      <div class="sheet__body" id="sheetBody">
+        <section id="viewSearch">
+          <div class="searchbox">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+            <input id="q" type="search" enterkeyhint="search" autocomplete="off" autocapitalize="off" spellcheck="false">
+          </div>
+          <div class="chips" id="chips">
+            <button class="chip" id="chipToilet" type="button"></button>
+            <button class="chip" id="chipOffice" type="button"></button>
+            <button class="chip" id="chipShelter" type="button"></button>
+          </div>
+          <p class="msg" id="offlineBanner" role="status" hidden></p>
+          <p class="sr-only" id="srCount" role="status" aria-live="polite"></p>
+          <ul class="rooms" id="roomList"></ul>
+          <div class="empty msg" id="emptyState" hidden>
+            <strong id="emptyTitle"></strong>
+            <p id="emptyHint"></p>
+          </div>
+        </section>
+        <section id="viewRoute" hidden>
+          <div class="route__top">
+            <button class="route__back" id="btnBack" type="button"></button>
+            <div class="route__main">
+              <h2 class="route__dest" id="routeDest" tabindex="-1"></h2>
+              <p class="route__summary" id="routeSummary" role="status"></p>
+              <div class="walkbar" id="walkBar" hidden><i id="walkFill"></i></div>
+            </div>
+          </div>
+          <p class="route__hint" id="routeHint" hidden></p>
+          <button class="route__go" id="btnGo" type="button" hidden></button>
+          <p class="route__note" id="walkNote" role="status" hidden></p>
+          <button class="route__from" id="btnChangeStart" type="button"></button>
+          <h3 class="sr-only" id="routeStepsTitle"></h3>
+          <ol class="sr-only" id="routeSteps"></ol>
+        </section>
+      </div>
+    </aside>
+    <main class="mapwrap" id="mapwrap">
+      <div id="map" role="application"></div>
+      <div class="v3d" id="view3d" hidden></div>
+      <div class="mapui">
+        <div class="locchip" id="locChip" hidden>
+          <span id="locText"></span>
+          <button type="button" class="locchip__x" id="locClear"></button>
+        </div>
+        <button type="button" class="compassbtn" id="btnCompass" hidden></button>
+        <div class="pickbanner msg" id="pickBanner" role="status" hidden>
+          <span id="pickText"></span>
+          <button class="btn btn--small btn--ghost" id="pickCancel" type="button"></button>
+        </div>
+        <div class="quakebanner msg" id="quakeBanner" role="alert" hidden>
+          <span id="quakeText"></span>
+          <button class="btn btn--small" id="quakeClose" type="button"></button>
+        </div>
+        <button class="pill pill--mark" id="btnMark" type="button"></button>
+        <button class="pill pill--shelter" id="btnShelter" type="button" aria-pressed="false"></button>
+        <div class="quakebanner shelterbanner msg" id="shelterBanner" role="alert" hidden>
+          <span id="shelterText"></span>
+          <button class="btn btn--small" id="shelterClose" type="button"></button>
+        </div>
+        <p class="v3dhint msg" id="v3dHint" role="status" hidden></p>
+        <div class="wxchip" id="wxChip" hidden></div>
+        <button class="pill pill--walk" id="btnWalk" type="button" hidden></button>
+        <button class="pill pill--walk pill--spot" id="btnSpot" type="button" hidden></button>
+        <div class="joy" id="joy" hidden><div class="joy__knob"></div></div>
+        <div class="fabs" id="fabs">
+          <button class="fab fab--film" id="btnFilm" type="button" hidden></button>
+          <button class="fab fab--eye" id="btnEye" type="button" aria-pressed="false"></button>
+          <button class="fab fab--3d" id="btn3d" type="button" aria-pressed="false"></button>
+          <button class="pill pill--mark pill--mark2" id="btnMark2" type="button"></button>
+          <button class="fab" id="btnFit" type="button"></button>
+          <button class="fab fab--quake" id="btnQuake" type="button" aria-pressed="false"></button>
+        </div>
+      </div>
+    </main>
+  </div>
+  <dialog id="dlgHere" aria-labelledby="hereTitle">
+    <form method="dialog" class="dlg">
+      <h2 id="hereTitle"></h2>
+      <div id="hereMain">
+        <button class="choice" id="chRoom" type="button"></button>
+        <button class="choice" id="chTap" type="button"></button>
+      </div>
+      <div id="herePick" hidden>
+        <div class="searchbox">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          <input id="hereQ" type="search" autocomplete="off" autocapitalize="off" spellcheck="false">
+        </div>
+        <ul class="rooms rooms--dialog" id="hereList"></ul>
+      </div>
+      <div class="dlg__foot"><button class="btn btn--ghost" id="hereCancel" value="cancel"></button></div>
+    </form>
+  </dialog>
+  <dialog id="dlgPhoto" class="photo" aria-labelledby="photoCap">
+    <form method="dialog" class="photo__form">
+      <img id="photoImg" alt="" decoding="async">
+      <p class="photo__cap" id="photoCap" aria-live="polite"></p>
+      <div class="photo__nav" id="photoNav" hidden>
+        <button type="button" class="photo__arrow" id="photoPrev"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+        <span class="photo__count" id="photoCount"></span>
+        <button type="button" class="photo__arrow" id="photoNext"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button>
+      </div>
+      <div class="photo__thumbs" id="photoThumbs" hidden></div>
+      <button class="btn photo__close" id="photoClose" value="close"></button>
+    </form>
+  </dialog>
+  <noscript><p style="padding:24px;font:18px system-ui">JavaScript נדרש. / Требуется JavaScript. / JavaScript is required.</p></noscript>
+  <script src="src/intro.js"></script>
+  <script type="module" src="src/app.js"></script>
+  <script type="module" src="src/extras.js"></script>
+</body>
+</html>
